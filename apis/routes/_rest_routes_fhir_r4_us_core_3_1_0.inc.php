@@ -25,6 +25,7 @@ use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\RestControllers\Config\RestConfig;
 use OpenEMR\RestControllers\FHIR\FhirAllergyIntoleranceRestController;
 use OpenEMR\RestControllers\FHIR\FhirAppointmentRestController;
+use OpenEMR\RestControllers\FHIR\FhirBundleRestController;
 use OpenEMR\RestControllers\FHIR\FhirCarePlanRestController;
 use OpenEMR\RestControllers\FHIR\FhirCareTeamRestController;
 use OpenEMR\RestControllers\FHIR\FhirCoverageRestController;
@@ -851,6 +852,11 @@ return [
         );
 
         return $return;
+    },
+    'POST /fhir' => function (HttpRestRequest $request, OEGlobalsBag $globalsBag) {
+        RestConfig::request_authorization_check($request, "admin", "users");
+        $data = (array) (json_decode(file_get_contents("php://input"), true));
+        return (new FhirBundleRestController())->post($data);
     },
 
     // these two operations are adopted based on the documentation used in the IBM FHIR Server
