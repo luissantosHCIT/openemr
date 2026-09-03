@@ -11,9 +11,10 @@
 
 /* Include the class we're extending. */
 
+use OpenEMR\Common\Forms\EncounterFormAccess;
 use OpenEMR\Core\OEGlobalsBag;
 
-require_once(OEGlobalsBag::getInstance()->get('fileroot') . "/interface/clickmap/C_AbstractClickmap.php");
+require_once(OEGlobalsBag::getInstance()->getProjectDir() . "/interface/clickmap/C_AbstractClickmap.php");
 
 /* included so that we can instantiate FormPainMap in createModel, to model the data contained in this form. */
 require_once("FormPainMap.php");
@@ -45,9 +46,21 @@ class C_FormPainMap extends C_AbstractClickmap
     }
 
     /**
+     * @brief Overrides parent to gate the form load on session-patient ownership
+     *  before delegating to parent::view_action().
+     */
+    public function view_action($form_id): string
+    {
+        $formId = is_numeric($form_id) ? (int) $form_id : 0;
+        EncounterFormAccess::assertFormBelongsToSessionPatient($formId, self::$FORM_CODE);
+
+        return parent::view_action((string) $formId);
+    }
+
+    /**
      * @brief Called by C_AbstractClickmap's members to instantiate a Model object on demand.
      *
-     * @param form_id
+     * @param mixed $form_id
      *  optional id of a form in the EMR, to populate data from.
      */
     public function createModel($form_id = "")
@@ -62,15 +75,15 @@ class C_FormPainMap extends C_AbstractClickmap
     /**
      * @brief return the path to the backing image relative to the webroot.
      */
-    function getImage()
+    public function getImage()
     {
-        return OEGlobalsBag::getInstance()->get('webroot') . "/interface/forms/" . C_FormPainMap::$FORM_CODE . "/templates/painmap.png";
+        return OEGlobalsBag::getInstance()->getWebRoot() . "/interface/forms/" . C_FormPainMap::$FORM_CODE . "/templates/painmap.png";
     }
 
     /**
      * @brief return a n arra containing the options for the dropdown box.
      */
-    function getOptionList()
+    public function getOptionList()
     {
         return [  "0" => "None",
                        "1" => "Level 1",
@@ -88,7 +101,7 @@ class C_FormPainMap extends C_AbstractClickmap
     /**
      * @brief return a label for the dropdown boxes on the form, as a string.
      */
-    function getOptionsLabel()
+    public function getOptionsLabel()
     {
         return "Pain Scale";
     }

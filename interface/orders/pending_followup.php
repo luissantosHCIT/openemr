@@ -93,13 +93,13 @@ if ($_POST['form_csvexport']) {
     header("Content-Disposition: attachment; filename=pending_followup.csv");
     header("Content-Description: File Transfer");
   // CSV headers:
-    echo csvEscape(xl('Patient')) . ',';
-    echo csvEscape(xl('ID')) . ',';
-    echo csvEscape(xl('Ordered')) . ',';
-    echo csvEscape(xl('Procedure')) . ',';
-    echo csvEscape(xl('Provider')) . ',';
-    echo csvEscape(xl('Code')) . ',';
-    echo csvEscape(xl('Service')) . "\n";
+    echo xlc('Patient') . ',';
+    echo xlc('ID') . ',';
+    echo xlc('Ordered') . ',';
+    echo xlc('Procedure') . ',';
+    echo xlc('Provider') . ',';
+    echo xlc('Code') . ',';
+    echo xlc('Service') . "\n";
 } else { // not export
     ?>
 <html>
@@ -118,7 +118,7 @@ if ($_POST['form_csvexport']) {
             <?php $datetimepicker_timepicker = false; ?>
             <?php $datetimepicker_showseconds = false; ?>
             <?php $datetimepicker_formatInput = false; ?>
-            <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+            <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
             <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
         });
     });

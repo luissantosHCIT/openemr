@@ -7,6 +7,16 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../ccr/transmitCCD.php',
 ];
 $ignoreErrors[] = [
+    'message' => '#^Strict comparison using \\=\\=\\= between false and int will always evaluate to false\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../interface/eRxSOAP.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Strict comparison using \\=\\=\\= between false and string will always evaluate to false\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../interface/eRxSOAP.php',
+];
+$ignoreErrors[] = [
     'message' => '#^Strict comparison using \\=\\=\\= between array\\<mixed\\>\\|false and null will always evaluate to false\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../interface/forms/LBF/printable.php',
@@ -47,24 +57,14 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../interface/patient_file/history/history_sdoh_widget.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\=\\=\\= between array and false will always evaluate to false\\.$#',
-    'count' => 2,
-    'path' => __DIR__ . '/../../interface/usergroup/ssl_certificates_admin.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\=\\=\\= between data and false will always evaluate to false\\.$#',
-    'count' => 2,
-    'path' => __DIR__ . '/../../interface/usergroup/ssl_certificates_admin.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\=\\=\\= between string and false will always evaluate to false\\.$#',
-    'count' => 2,
-    'path' => __DIR__ . '/../../interface/usergroup/ssl_certificates_admin.php',
-];
-$ignoreErrors[] = [
     'message' => '#^Strict comparison using \\=\\=\\= between int and false will always evaluate to false\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../library/ESign/DbRow/Signable.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Strict comparison using \\=\\=\\= between string and null will always evaluate to false\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../library/ESign/Form/Signable.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\=\\=\\= between non\\-empty\\-array\\<mixed, mixed\\> and array\\{\\} will always evaluate to false\\.$#',
@@ -112,11 +112,6 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../library/clinical_rules.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\=\\=\\= between array and false will always evaluate to false\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/create_ssl_certificate.php',
-];
-$ignoreErrors[] = [
     'message' => '#^Strict comparison using \\=\\=\\= between ADORecordSet and false will always evaluate to false\\.$#',
     'count' => 4,
     'path' => __DIR__ . '/../../library/direct_message_check.inc.php',
@@ -125,6 +120,11 @@ $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\=\\=\\= between non\\-falsy\\-string and false will always evaluate to false\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../library/edihistory/edih_io.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Strict comparison using \\=\\=\\= between array and false will always evaluate to false\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../portal/patient/fwk/libs/util/parsecsv.lib.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\=\\=\\= between \\(int\\|false\\) and \'\' will always evaluate to false\\.$#',
@@ -205,31 +205,6 @@ $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\=\\=\\= between float\\|int\\|string and false will always evaluate to false\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/Services/Search/SearchFieldStatementResolver.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\=\\=\\= between \'g10_certification\' and \'us_core_v311\' will always evaluate to false\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../tests/Tests/Certification/HIT1/G10_Certification/BulkPatientExport311APITest.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\=\\=\\= between \'g10_certification\' and \'us_core_v311\' will always evaluate to false\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../tests/Tests/Certification/HIT1/G10_Certification/SinglePatient311APITest.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\=\\=\\= between \'g10_certification\' and \'us_core_v311\' will always evaluate to false\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../tests/Tests/Certification/HIT1/G10_Certification/SinglePatient700APITest.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\=\\=\\= between \'g10_certification\' and \'us_core_v311\' will always evaluate to false\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../tests/Tests/Certification/HIT1/G10_Certification/SinglePatientApi/CapabilityStatementTest.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\=\\=\\= between \\*NEVER\\* and \'g10_certification\' will always evaluate to false\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../tests/Tests/Certification/HIT1/US_Core_311/InfernoSinglePatientAPITest.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\=\\=\\= between OpenEMR\\\\FHIR\\\\R4\\\\FHIRElement\\\\FHIRCode and \'11341\\-5\' will always evaluate to false\\.$#',

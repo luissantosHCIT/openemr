@@ -208,15 +208,13 @@ class FHIRValueSetFilter extends FHIRBackboneElement implements \JsonSerializabl
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ValueSetFilter xmlns="http://hl7.org/fhir"></ValueSetFilter>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ValueSetFilter xmlns="http://hl7.org/fhir"></ValueSetFilter>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->property)) {
             $this->property->xmlSerialize(true, $sxe->addChild('property'));

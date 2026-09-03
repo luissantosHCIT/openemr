@@ -14,6 +14,8 @@
 
 namespace MedExApi;
 
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Services\VersionService;
@@ -125,9 +127,14 @@ class Practice extends Base
     {
         $fields2 = [];
         $fields3 = [];
-        $callback = "https://" . OEGlobalsBag::getInstance()->get('_SERVER')['SERVER_NAME'] . OEGlobalsBag::getInstance()->get('_SERVER')['PHP_SELF'];
-        $callback = str_replace('ajax/execute_background_services.php', 'MedEx/MedEx.php', $callback);
-        $fields2['callback_url'] = $callback;
+        // Build the callback URL from the globally-configured site address
+        // rather than inferring it from $_SERVER. $_SERVER is unavailable when
+        // this service runs via `bin/console background:services run`, which
+        // is the supported non-browser entry point. qualified_site_addr is
+        // composed from site_addr_oath + webroot in interface/globals.php and
+        // respects operator configuration in either environment.
+        $fields2['callback_url'] = OEGlobalsBag::getInstance()->getString('qualified_site_addr')
+            . '/library/MedEx/MedEx.php';
         $sqlQuery = "SELECT * FROM medex_prefs";
         $my_status = sqlQuery($sqlQuery);
         $providers = explode('|', (string) $my_status['ME_providers']);
@@ -367,8 +374,8 @@ class Events extends Base
 
                 if (!empty($prefs['ME_facilities'])) {
                     $facilityIds = array_filter(
-                        array_map(fn($id) => filter_var($id, FILTER_VALIDATE_INT), explode('|', (string) $prefs['ME_facilities'])),
-                        fn($id) => $id !== false
+                        array_map(fn($id): int|false => filter_var($id, FILTER_VALIDATE_INT), explode('|', (string) $prefs['ME_facilities'])),
+                        fn($id): bool => $id !== false
                     );
                     if ($facilityIds === []) {
                         continue;
@@ -1050,7 +1057,7 @@ class Events extends Base
             // this event is forced to NOT REPEAT
             $args['form_repeat'] = "0";
             $args['recurrspec'] = $noRecurrspec;
-            $args['form_enddate'] = "0000-00-00";
+            $args['form_enddate'] = null;
             //$args['prefcatid'] = (int)$appt['prefcatid'];
 
             $sql = "INSERT INTO openemr_postcalendar_events ( " .
@@ -1080,7 +1087,7 @@ class Events extends Base
         return count($hits);
     }
 
-    private function recursive_array_search($needle, $haystack)
+    private function recursive_array_search($needle, $haystack): bool
     {
         foreach ($haystack as $key => $value) {
             $current_key = $key;
@@ -1257,7 +1264,7 @@ class Events extends Base
 
                         if ($excluded == false) {
                             $event['pc_eventDate'] = $occurrence;
-                            $event['pc_endDate'] = '0000-00-00';
+                            $event['pc_endDate'] = null;
                             $events2[] = $event;
                             $data[] = $event['pc_eventDate'];
                         }
@@ -1325,35 +1332,63 @@ class Events extends Base
         }
     }
 
-    public function save_recall($saved)
+    /**
+     * @param int          $pid   Patient id the recall applies to; also used to scope
+     *                            the pre-delete of any prior recall for this patient.
+     * @param array<mixed> $saved Form fields (typically `$_REQUEST`) for recall
+     *                            reason/date/provider/facility + patient contact
+     *                            details. `new_pid` is ignored — pass `$pid` instead.
+     */
+    public function save_recall(int $pid, array $saved): void
     {
-        $this->delete_Recall();
-        $mysqldate = DateToYYYYMMDD($_REQUEST['form_recall_date']);
+        $this->delete_Recall($pid);
+        $mysqldate = DateToYYYYMMDD($saved['form_recall_date'] ?? '');
         $queryINS = "INSERT INTO medex_recalls (r_pid,r_reason,r_eventDate,r_provider,r_facility)
                         VALUES (?,?,?,?,?)
                         ON DUPLICATE KEY
                         UPDATE r_reason=?, r_eventDate=?, r_provider=?,r_facility=?";
-        sqlStatement($queryINS, [$_REQUEST['new_pid'],$_REQUEST['new_reason'],$mysqldate,$_REQUEST['new_provider'],$_REQUEST['new_facility'],$_REQUEST['new_reason'],$mysqldate,$_REQUEST['new_provider'],$_REQUEST['new_facility']]);
+        QueryUtils::sqlStatementThrowException($queryINS, [
+            $pid, $saved['new_reason'] ?? '', $mysqldate, $saved['new_provider'] ?? '', $saved['new_facility'] ?? '',
+            $saved['new_reason'] ?? '', $mysqldate, $saved['new_provider'] ?? '', $saved['new_facility'] ?? '',
+        ]);
         $query = "UPDATE patient_data
                     SET phone_home=?,phone_cell=?,email=?,
                         hipaa_allowemail=?,hipaa_voice=?,hipaa_allowsms=?,
                         street=?,postal_code=?,city=?,state=?
                     WHERE pid=?";
-        $sqlValues = [$_REQUEST['new_phone_home'],$_REQUEST['new_phone_cell'],$_REQUEST['new_email'],
-                        $_REQUEST['new_email_allow'],$_REQUEST['new_voice'],$_REQUEST['new_allowsms'],
-                        $_REQUEST['new_address'],$_REQUEST['new_postal_code'],$_REQUEST['new_city'],$_REQUEST['new_state'],
-                        $_REQUEST['new_pid']];
-        sqlStatement($query, $sqlValues);
-        return;
+        QueryUtils::sqlStatementThrowException($query, [
+            $saved['new_phone_home'] ?? '', $saved['new_phone_cell'] ?? '', $saved['new_email'] ?? '',
+            $saved['new_email_allow'] ?? '', $saved['new_voice'] ?? '', $saved['new_allowsms'] ?? '',
+            $saved['new_address'] ?? '', $saved['new_postal_code'] ?? '', $saved['new_city'] ?? '', $saved['new_state'] ?? '',
+            $pid,
+        ]);
     }
 
-    public function delete_Recall()
+    /**
+     * Delete recall rows for a patient. If `$recallId` is provided, only that
+     * specific recall row is deleted (still scoped to `$pid` — never deletes a
+     * row whose `r_pid` doesn't match). If `$recallId` is null, all recall rows
+     * for the patient are deleted (used by `save_recall()` to clear before
+     * re-insert).
+     */
+    public function delete_Recall(int $pid, ?int $recallId = null): void
     {
-        $sqlQuery = "DELETE FROM medex_recalls WHERE r_pid=? OR r_ID=?";
-        sqlStatement($sqlQuery, [$_POST['pid'],$_POST['r_ID']]);
+        if ($recallId !== null) {
+            QueryUtils::sqlStatementThrowException(
+                "DELETE FROM medex_recalls WHERE r_pid = ? AND r_ID = ?",
+                [$pid, $recallId],
+            );
+        } else {
+            QueryUtils::sqlStatementThrowException(
+                "DELETE FROM medex_recalls WHERE r_pid = ?",
+                [$pid],
+            );
+        }
 
-        $sqlDELETE = "DELETE FROM medex_outgoing WHERE msg_pc_eid = ?";
-        sqlStatement($sqlDELETE, ['recall_' . $_POST['pid']]);
+        QueryUtils::sqlStatementThrowException(
+            "DELETE FROM medex_outgoing WHERE msg_pc_eid = ?",
+            ['recall_' . $pid],
+        );
     }
 
     public function getAge($dob, $asof = '')
@@ -1507,7 +1542,7 @@ class Display extends Base
         function toggle_menu() {
                 var x = document.getElementById('hide_nav');
                 if (x.style.display === 'none') {
-                    $.post( "<?php echo OEGlobalsBag::getInstance()->get('webroot') . "/interface/main/messages/messages.php"; ?>", {
+                    $.post( "<?php echo OEGlobalsBag::getInstance()->getWebRoot() . "/interface/main/messages/messages.php"; ?>", {
                         'setting_bootstrap_submenu' : 'show',
                         success: function (data) {
                             x.style.display = 'block';
@@ -1515,7 +1550,7 @@ class Display extends Base
                         });
 
                 } else {
-                    $.post( "<?php echo OEGlobalsBag::getInstance()->get('webroot') . "/interface/main/messages/messages.php"; ?>", {
+                    $.post( "<?php echo OEGlobalsBag::getInstance()->getWebRoot() . "/interface/main/messages/messages.php"; ?>", {
                         'setting_bootstrap_submenu' : 'hide',
                         success: function (data) {
                             x.style.display = 'none';
@@ -1527,7 +1562,7 @@ class Display extends Base
 
         function SMS_bot_list() {
             top.restoreSession();
-            var myWindow = window.open('<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/main/messages/messages.php?nomenu=1&go=SMS_bot&dir=back&show=new','SMS_bot', 'width=400,height=650');
+            var myWindow = window.open('<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/main/messages/messages.php?nomenu=1&go=SMS_bot&dir=back&show=new','SMS_bot', 'width=400,height=650');
             myWindow.focus();
             return false;
         }
@@ -1559,7 +1594,7 @@ class Display extends Base
                                     } else {
                                         ?>
                                         <li id="menu_PREFERENCES"  name="menu_PREFERENCES" class="">
-                                        <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->get('web_root'); ?>/interface/main/messages/messages.php?go=setup&stage=1"><?php echo xlt("Setup MedEx"); ?></a></li>
+                                        <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/main/messages/messages.php?go=setup&stage=1"><?php echo xlt("Setup MedEx"); ?></a></li>
                                     <?php } ?>
                                  </ul>
                             </li>
@@ -1568,13 +1603,13 @@ class Display extends Base
                         <li class="nav-item dropdown">
                             <a class="nav-link" data-toggle="dropdown" id="menu_dropdown_msg" role="button" aria-expanded="true"><?php echo xlt("Messages"); ?> </a>
                             <ul class="bgcolor2 dropdown-menu" aria-labelledby="menu_dropdown_msg">
-                                <li id="menu_new_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->get('web_root'); ?>/interface/main/messages/messages.php?showall=no&sortby=users.lname&sortorder=asc&begin=0&task=addnew&form_active=1"> <?php echo xlt("New Message"); ?></a></li>
+                                <li id="menu_new_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/main/messages/messages.php?showall=no&sortby=users.lname&sortorder=asc&begin=0&task=addnew&form_active=1"> <?php echo xlt("New Message"); ?></a></li>
                                 <li class="dropdown-divider"></li>
-                                <li id="menu_new_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->get('web_root'); ?>/interface/main/messages/messages.php?show_all=no&form_active=1"> <?php echo xlt("My Messages"); ?></a></li>
-                                <li id="menu_all_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->get('web_root'); ?>/interface/main/messages/messages.php?show_all=yes&form_active=1"> <?php echo xlt("All Messages"); ?></a></li>
+                                <li id="menu_new_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/main/messages/messages.php?show_all=no&form_active=1"> <?php echo xlt("My Messages"); ?></a></li>
+                                <li id="menu_all_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/main/messages/messages.php?show_all=yes&form_active=1"> <?php echo xlt("All Messages"); ?></a></li>
                                 <li class="dropdown-divider"></li>
-                                <li id="menu_active_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->get('web_root'); ?>/interface/main/messages/messages.php?show_all=yes&form_active=1"> <?php echo xlt("Active Messages"); ?></a></li>
-                                <li id="menu_inactive_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->get('web_root'); ?>/interface/main/messages/messages.php?form_inactive=1"> <?php echo xlt("Inactive Messages"); ?></a></li>
+                                <li id="menu_active_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/main/messages/messages.php?show_all=yes&form_active=1"> <?php echo xlt("Active Messages"); ?></a></li>
+                                <li id="menu_inactive_msg"> <a class="dropdown-item" href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/main/messages/messages.php?form_inactive=1"> <?php echo xlt("Inactive Messages"); ?></a></li>
                                 <li id="menu_log_msg"> <a class="dropdown-item" onclick="openLogScreen();" > <?php echo xlt("Message Log"); ?></a></li>
                             </ul>
                         </li>
@@ -1905,6 +1940,7 @@ class Display extends Base
                     }
                     ?>
                     <form name="rcb" id="rcb" method="post">
+                        <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken(session: $session)); ?>" />
                         <input type="hidden" name="go" value="Recalls" />
                         <div class="text-center mb-4">
                             <button class="btn btn-primary btn-add" style="width: 200px;" onclick="goReminderRecall('addRecall');return false;"><?php echo xlt('New Recall'); ?></button>
@@ -2055,7 +2091,7 @@ class Display extends Base
     <script>
         function toggleRcbSelectors() {
             if ($("#rcb_selectors").css('display') === 'none') {
-                $.post( "<?php echo OEGlobalsBag::getInstance()->get('webroot') . "/interface/main/messages/messages.php"; ?>", {
+                $.post( "<?php echo OEGlobalsBag::getInstance()->getWebRoot() . "/interface/main/messages/messages.php"; ?>", {
                     'rcb_selectors' : 'block',
                     success: function (data) {
                         $("#rcb_selectors").slideToggle();
@@ -2063,7 +2099,7 @@ class Display extends Base
                     }
                 });
             } else {
-                $.post( "<?php echo OEGlobalsBag::getInstance()->get('webroot') . "/interface/main/messages/messages.php"; ?>", {
+                $.post( "<?php echo OEGlobalsBag::getInstance()->getWebRoot() . "/interface/main/messages/messages.php"; ?>", {
                     'rcb_selectors' : 'none',
                     success: function (data) {
                         $("#rcb_selectors").slideToggle();
@@ -2077,7 +2113,7 @@ class Display extends Base
         function SMS_bot(pid) {
             top.restoreSession();
             pid = pid.replace('recall_','');
-            window.open('<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/main/messages/messages.php?nomenu=1&go=SMS_bot&pid=' + pid,'SMS_bot', 'width=370,height=600,resizable=0');
+            window.open('<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/main/messages/messages.php?nomenu=1&go=SMS_bot&pid=' + pid,'SMS_bot', 'width=370,height=600,resizable=0');
             return false;
         }
         $(function () {
@@ -2087,7 +2123,7 @@ class Display extends Base
                 <?php $datetimepicker_timepicker = false; ?>
                 <?php $datetimepicker_showseconds = false; ?>
                 <?php $datetimepicker_formatInput = true; ?>
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
         });
@@ -2587,6 +2623,7 @@ class Display extends Base
             </div>
 
             <form class="prefs p-4 row" name="addRecall" id="addRecall">
+                <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken(session: $session)); ?>" />
                 <input type="hidden" name="go" id="go" value="addRecall" />
                 <input type="hidden" name="action" id="go" value="addRecall" />
                 <div class="col-4 divTable m-2 ml-auto">
@@ -2667,10 +2704,6 @@ class Display extends Base
                                             $firstProvider = sqlFetchArray(sqlStatement("SELECT id FROM users WHERE username=?", [$pc_username[0]]));
                                             $defaultProvider = $firstProvider['id'];
                                         }
-                                    }
-                                // if we clicked on a provider's schedule to add the event, use THAT.
-                                    if ($userid) {
-                                        $defaultProvider = $userid;
                                     }
 
                                     echo "<select class='form-control' name='new_provider' id='new_provider' style='width: 95%;'>";
@@ -2813,7 +2846,7 @@ class Display extends Base
                         <?php $datetimepicker_timepicker = false; ?>
                         <?php $datetimepicker_showseconds = false; ?>
                         <?php $datetimepicker_formatInput = true; ?>
-                        <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                        <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                         <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
                 });
             });
@@ -2919,7 +2952,7 @@ class Display extends Base
  * @return bool
  */
 
-    public function SMS_bot($logged_in)
+    public function SMS_bot($logged_in): bool
     {
         $fields = [];
         $fields = $_REQUEST;
@@ -3344,7 +3377,7 @@ class MedEx
     public $curl;
     public $practice;
     public $campaign;
-    public $events;
+    public Events $events;
     public $callback;
     public $logging;
     public $display;

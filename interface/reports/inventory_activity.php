@@ -21,7 +21,7 @@
  */
 
 require_once("../globals.php");
-require_once("$srcdir/patient.inc.php");
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . "/patient.inc.php");
 
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
@@ -388,29 +388,29 @@ if ($form_action == 'export') {
     header("Content-Description: File Transfer");
   // CSV headers:
     if ($product_first) {
-        echo csvEscape(xl('Product')) . ',';
-        echo csvEscape(xl('Warehouse')) . ',';
+        echo xlc('Product') . ',';
+        echo xlc('Warehouse') . ',';
     } else {
-        echo csvEscape(xl('Warehouse')) . ',';
-        echo csvEscape(xl('Product')) . ',';
+        echo xlc('Warehouse') . ',';
+        echo xlc('Product') . ',';
     }
 
     if ($_POST['form_details']) {
-        echo csvEscape(xl('Date')) . ',';
-        echo csvEscape(xl('Invoice')) . ',';
-        echo csvEscape(xl('Sales')) . ',';
-        echo csvEscape(xl('Distributions')) . ',';
-        echo csvEscape(xl('Purchases')) . ',';
-        echo csvEscape(xl('Transfers')) . ',';
-        echo csvEscape(xl('Adjustments')) . "\n";
+        echo xlc('Date') . ',';
+        echo xlc('Invoice') . ',';
+        echo xlc('Sales') . ',';
+        echo xlc('Distributions') . ',';
+        echo xlc('Purchases') . ',';
+        echo xlc('Transfers') . ',';
+        echo xlc('Adjustments') . "\n";
     } else {
-        echo csvEscape(xl('Start')) . ',';
-        echo csvEscape(xl('Sales')) . ',';
-        echo csvEscape(xl('Distributions')) . ',';
-        echo csvEscape(xl('Purchases')) . ',';
-        echo csvEscape(xl('Transfers')) . ',';
-        echo csvEscape(xl('Adjustments')) . ',';
-        echo csvEscape(xl('End')) . "\n";
+        echo xlc('Start') . ',';
+        echo xlc('Sales') . ',';
+        echo xlc('Distributions') . ',';
+        echo xlc('Purchases') . ',';
+        echo xlc('Transfers') . ',';
+        echo xlc('Adjustments') . ',';
+        echo xlc('End') . "\n";
     }
 } else { // end export
     ?>
@@ -455,7 +455,7 @@ table.mymaintable td, table.mymaintable th {
             <?php $datetimepicker_timepicker = false; ?>
             <?php $datetimepicker_showseconds = false; ?>
             <?php $datetimepicker_formatInput = true; ?>
-            <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+            <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
             <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
         });
     });

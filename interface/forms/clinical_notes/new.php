@@ -17,13 +17,6 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-require_once("../../globals.php");
-require_once("$srcdir/api.inc.php");
-require_once("$srcdir/formatting.inc.php");
-require_once("$srcdir/patient.inc.php");
-require_once("$srcdir/options.inc.php");
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/csv_like_join.php');
-
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Common\Twig\TwigContainer;
@@ -33,6 +26,16 @@ use OpenEMR\Events\Core\TemplatePageEvent;
 use OpenEMR\Services\ClinicalNotesService;
 use OpenEMR\Services\ListService;
 use OpenEMR\Services\PatientService;
+
+require_once("../../globals.php");
+
+// Hoist legacy `globals.php` locals so PHPStan can see them (#11792 Phase 5).
+$srcdir = OEGlobalsBag::getInstance()->getSrcDir();
+
+require_once("$srcdir/api.inc.php");
+require_once("$srcdir/formatting.inc.php");
+require_once("$srcdir/patient.inc.php");
+require_once("$srcdir/options.inc.php");
 
 $returnurl = 'encounter_top.php';
 $formid = (int)($_GET['id'] ?? 0);
@@ -52,7 +55,7 @@ if (empty($formid)) {
 $clinical_notes_type = $clinicalNotesService->getClinicalNoteTypes();
 $clinical_notes_category = $clinicalNotesService->getClinicalNoteCategories();
 $getDefaultValue = function ($items) {
-    $selectedItem = array_filter($items, fn($val) => $val['selected']);
+    $selectedItem = array_filter($items, fn($val): mixed => $val['selected']);
     if (empty($selectedItem)) {
         return ''; // default to an empty value if there is no default option
     } else {
@@ -117,7 +120,7 @@ $viewArgs = [
     ]
     ,'check_res' => $check_res
     ,'alertMessage' => $alertMessage
-    ,'rootdir' => OEGlobalsBag::getInstance()->get('rootdir')
+    ,'rootdir' => OEGlobalsBag::getInstance()->getKernel()->getRootDir()
     ,'formid' => $formid
     ,'defaultType' => $defaultType
     ,'defaultCategory' => $defaultCategory

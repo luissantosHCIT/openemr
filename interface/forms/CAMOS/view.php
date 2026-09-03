@@ -29,6 +29,7 @@ require_once("../../../library/api.inc.php");
 
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Database\QueryUtils;
+use OpenEMR\Common\Forms\FormActionBarSettings;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
@@ -78,13 +79,13 @@ function show_edit(t) {
 </script>
 </head>
 <body class="body_top">
-<form method=post action="<?php echo OEGlobalsBag::getInstance()->getString('rootdir'); ?>/forms/CAMOS/save.php?mode=delete&id=<?php echo attr_url(filter_input(INPUT_GET, 'id') ?: ''); ?>" name="my_form">
+<form method=post action="<?php echo OEGlobalsBag::getInstance()->getKernel()->getRootDir(); ?>/forms/CAMOS/save.php?mode=delete&id=<?php echo attr_url(filter_input(INPUT_GET, 'id') ?: ''); ?>" name="my_form">
 <input type="hidden" name="csrf_token_form" value="<?php echo CsrfUtils::collectCsrfToken(session: $session); ?>" />
 <h1> <?php echo xlt('CAMOS'); ?> </h1>
 <input type="submit" name="delete" value="<?php echo xla('Delete Selected Items'); ?>" />
 <input type="submit" name="update" value="<?php echo xla('Update Selected Items'); ?>" />
 <?php
-echo "<a href='" . OEGlobalsBag::getInstance()->getString('form_exit_url') . "'>[" . xlt('do nothing') . "]</a>";
+echo "<a href='" . FormActionBarSettings::EXIT_URL . "'>[" . xlt('do nothing') . "]</a>";
 ?>
 <br/><br/>
 <input type='button' value='<?php echo xla('Select All'); ?>'

@@ -138,15 +138,13 @@ class FHIRNarrativeStatus extends FHIRElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<NarrativeStatus xmlns="http://hl7.org/fhir"></NarrativeStatus>');
-        }
+        $sxe ??= new \SimpleXMLElement('<NarrativeStatus xmlns="http://hl7.org/fhir"></NarrativeStatus>');
         $sxe->addAttribute('value', $this->value);
         if ($returnSXE) {
             return $sxe;

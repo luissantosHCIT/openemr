@@ -138,15 +138,13 @@ class FHIRNamingSystemIdentifierType extends FHIRElement implements \JsonSeriali
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<NamingSystemIdentifierType xmlns="http://hl7.org/fhir"></NamingSystemIdentifierType>');
-        }
+        $sxe ??= new \SimpleXMLElement('<NamingSystemIdentifierType xmlns="http://hl7.org/fhir"></NamingSystemIdentifierType>');
         $sxe->addAttribute('value', $this->value);
         if ($returnSXE) {
             return $sxe;

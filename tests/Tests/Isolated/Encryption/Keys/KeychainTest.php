@@ -4,7 +4,7 @@
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Eric Stern <erics@opencoreemr.com>
- * @copyright Copyright (c) 2026 OpenCoreEMR <https://opencoreemr.com>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -48,7 +48,7 @@ class KeychainTest extends TestCase
         $keychain->registerCipher($id2, $cipher2);
 
 
-        assert($cipher1 !== $cipher2);
+        self::assertNotSame($cipher1, $cipher2);
 
         $retr1 = $keychain->getCipher($id1);
         self::assertSame($cipher1, $retr1);

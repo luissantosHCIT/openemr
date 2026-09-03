@@ -273,15 +273,13 @@ class FHIRQuantity extends FHIRElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<Quantity xmlns="http://hl7.org/fhir"></Quantity>');
-        }
+        $sxe ??= new \SimpleXMLElement('<Quantity xmlns="http://hl7.org/fhir"></Quantity>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->value)) {
             $this->value->xmlSerialize(true, $sxe->addChild('value'));

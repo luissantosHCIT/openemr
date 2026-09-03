@@ -730,15 +730,13 @@ class FHIRExampleScenario extends FHIRDomainResource implements \JsonSerializabl
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ExampleScenario xmlns="http://hl7.org/fhir"></ExampleScenario>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ExampleScenario xmlns="http://hl7.org/fhir"></ExampleScenario>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->url)) {
             $this->url->xmlSerialize(true, $sxe->addChild('url'));

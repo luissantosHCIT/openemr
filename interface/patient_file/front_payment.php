@@ -18,19 +18,22 @@
  */
 
 require_once("../globals.php");
-require_once("$srcdir/patient.inc.php");
-require_once("$srcdir/payment.inc.php");
-require_once("$srcdir/forms.inc.php");
+$srcdir = \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir();
+$session = \OpenEMR\Common\Session\SessionWrapperFactory::getInstance()->getActiveSession();
+$encounter = $session->get('encounter', 0);
+$pid = $session->get('pid', 0);
+require_once($srcdir . "/patient.inc.php");
+require_once($srcdir . "/forms.inc.php");
 require_once("../../custom/code_types.inc.php");
-require_once("$srcdir/options.inc.php");
-require_once("$srcdir/encounter_events.inc.php");
+require_once($srcdir . "/options.inc.php");
+require_once($srcdir . "/encounter_events.inc.php");
 
+use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Crypto\CryptoGen;
 use OpenEMR\Common\Csrf\CsrfUtils;
-use OpenEMR\Common\Session\SessionWrapperFactory;
-use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Common\Utils\FormatMoney;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
@@ -40,10 +43,9 @@ use OpenEMR\PaymentProcessing\Recorder;
 use OpenEMR\PaymentProcessing\Sphere\SpherePayment;
 use OpenEMR\Services\FacilityService;
 
-$session = SessionWrapperFactory::getInstance()->getActiveSession();
 
 $globalsBag = OEGlobalsBag::getInstance();
-$twig = (new TwigContainer(null, $globalsBag->getKernel()))->getTwig();
+$twig = ServiceContainer::getTwig();
 
 if (!empty($_REQUEST['receipt']) && empty($_POST['form_save'])) {
     if (!AclMain::aclCheckCore('acct', 'bill') && !AclMain::aclCheckCore('acct', 'rep_a') && !AclMain::aclCheckCore('patients', 'rx')) {
@@ -61,6 +63,10 @@ $pid = (is_numeric($hiddenPatientCode) && $hiddenPatientCode > 0) ? (int) $hidde
 
 $facilityService = new FacilityService();
 $recorder = new Recorder();
+$cryptoGen = new CryptoGen();
+$form_pid = $_POST['form_pid'] ?? ($_GET['patient'] ?? $pid);
+$payment_id = 0;
+$session_id = 0;
 
 ?>
 <!DOCTYPE html>
@@ -365,7 +371,7 @@ if ($alertmsg === '' && (!empty($_POST['form_save']) || !empty($_REQUEST['receip
     <?php Header::setupHeader(); ?>
 <script>
 
-    <?php require(OEGlobalsBag::getInstance()->get('srcdir') . "/restoreSession.php"); ?>
+    <?php require($srcdir . "/restoreSession.php"); ?>
 
 $(function () {
     var win = top.printLogSetup ? top : opener.top;
@@ -681,18 +687,18 @@ function toencounter(enc, datestr, topframe) {
 <script>
     var mypcc = '1';
 </script>
-    <?php include_once(OEGlobalsBag::getInstance()->get('srcdir') . "/ajax/payment_ajax_jav.inc.php"); ?>
+    <?php include_once($srcdir . "/ajax/payment_ajax_jav.inc.php"); ?>
 <script>
     document.onclick=HideTheAjaxDivs;
 </script>
 
-    <?php Header::setupAssets('topdialog'); ?>
+    <?php echo Header::setupAssets(['topdialog']); ?>
 
-<script src="<?php echo OEGlobalsBag::getInstance()->get('assets_static_relative'); ?>/jquery-creditcardvalidator/jquery.creditCardValidator.js"></script>
+<script src="<?php echo OEGlobalsBag::getInstance()->getKernel()->getAssetsRelative(); ?>/jquery-creditcardvalidator/jquery.creditCardValidator.js"></script>
 
 <script>
     var chargeMsg = <?php echo xlj('Payment was successfully authorized and charged. Thank You.'); ?>;
-    var publicKey = <?php echo json_encode($cryptoGen->decryptStandard(OEGlobalsBag::getInstance()->getString('gateway_public_key'))); ?>;
+    var publicKey = <?php echo json_encode($cryptoGen->decryptFromDatabase(OEGlobalsBag::getInstance()->getString('gateway_public_key'))); ?>;
 $(function() {
     $('#openPayModal').on('show.bs.modal', function () {
         let total = $("[name='form_paytotal']").val();
@@ -710,7 +716,7 @@ $(function() {
         $("#paymentAmount").val(total);
     });
 });
-    <?php require(OEGlobalsBag::getInstance()->get('srcdir') . "/restoreSession.php"); ?>
+    <?php require($srcdir . "/restoreSession.php"); ?>
 function closeHow(e) {
     if (opener) {
         dlgclose();
@@ -1576,8 +1582,8 @@ function make_insurance() {
             // Important: gateway_api_key is NOT a sensitive value when used with Authorize.net (not true for other gateways!)
             ?>
             <script>
-                var ccerr = <?php echo xlj('Invalid Credit Card Number'); ?>
-                var apiLoginID = <?php echo json_encode($cryptoGen->decryptStandard($globalsBag->getString('gateway_api_key'))); ?>;
+                var ccerr = <?php echo xlj('Invalid Credit Card Number'); ?>;
+                var apiLoginID = <?php echo json_encode($cryptoGen->decryptFromDatabase($globalsBag->getString('gateway_api_key'))); ?>;
 
                     // In House CC number Validation
                     $('#cardNumber').validateCreditCard(function (result) {

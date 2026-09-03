@@ -11,10 +11,9 @@
  */
 
 require_once('../../globals.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/pnotes.inc.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/patient.inc.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/options.inc.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/gprelations.inc.php');
+$srcdir = \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir();
+require_once($srcdir . '/patient.inc.php');
+require_once($srcdir . '/options.inc.php');
 
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
@@ -23,13 +22,18 @@ use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Services\PatientService;
 use OpenEMR\Services\UserService;
 use OpenEMR\Services\Utils\DateFormatterUtils;
 
 $session = SessionWrapperFactory::getInstance()->getActiveSession();
+$pid = $session->get('pid', 0);
+$userauthorized = OEGlobalsBag::getInstance()->get('userauthorized', 0);
+$result_count = 0;
+$result_sent_count = 0;
+$notes_sent_count = 0;
 
 if (!empty($_GET['set_pid'])) {
-    require_once(OEGlobalsBag::getInstance()->get('srcdir') . '/pid.inc.php');
     setpid($_GET['set_pid']);
 }
 
@@ -84,13 +88,9 @@ if (!empty($_REQUEST['s']) && ($_REQUEST['s'] == '1')) {
     $outbox_style = "style='display:none;border:5px solid var(--white);'";
 }
 
-if (!isset($offset)) {
-    $offset = 0;
-}
+$offset ??= 0;
 
-if (!isset($offset_sent)) {
-    $offset_sent = 0;
-}
+$offset_sent ??= 0;
 
 // Collect active variable and applicable html code for links
 if ($form_active) {
@@ -730,7 +730,8 @@ if (!empty($_GET['set_pid'])) {
     $ndata = getPatientData($patient_id, "fname, lname, pubpid");
     ?>
  parent.left_nav.setPatient(<?php echo js_escape($ndata['fname'] . " " . $ndata['lname']) . "," .
-     js_escape($patient_id) . "," . js_escape($ndata['pubpid']) . ",window.name"; ?>);
+     js_escape($patient_id) . "," . js_escape($ndata['pubpid']) . ",window.name, null, " .
+     ((new PatientService())->hasPictureForPid($patient_id) ? 'true' : 'false'); ?>);
     <?php
 }
 

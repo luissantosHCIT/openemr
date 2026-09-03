@@ -13,13 +13,17 @@
 namespace OpenEMR\Pdf;
 
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Services\Storage\CacheDirectory;
 
 class Config_Mpdf
 {
+    /**
+     * @return array<string, mixed>
+     */
     public static function getConfigMpdf()
     {
         return [
-            'tempDir' => OEGlobalsBag::getInstance()->get('MPDF_WRITE_DIR'),
+            'tempDir' => (new CacheDirectory())->for('openemr-mpdf'),
             'mode' => OEGlobalsBag::getInstance()->get('pdf_language'),
             'format' => OEGlobalsBag::getInstance()->get('pdf_size'),
             'default_font_size' => OEGlobalsBag::getInstance()->getInt('pdf_font_size'),
@@ -35,6 +39,7 @@ class Config_Mpdf
             'use_kwt' => true,
             'autoScriptToLang' => true,
             'keep_table_proportions' => true,
+            'CSSselectMedia' => 'screen',
         ];
     }
 }

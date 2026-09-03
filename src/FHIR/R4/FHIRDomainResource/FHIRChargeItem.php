@@ -1126,15 +1126,13 @@ class FHIRChargeItem extends FHIRDomainResource implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ChargeItem xmlns="http://hl7.org/fhir"></ChargeItem>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ChargeItem xmlns="http://hl7.org/fhir"></ChargeItem>');
         parent::xmlSerialize(true, $sxe);
         if (0 < count($this->identifier)) {
             foreach ($this->identifier as $identifier) {

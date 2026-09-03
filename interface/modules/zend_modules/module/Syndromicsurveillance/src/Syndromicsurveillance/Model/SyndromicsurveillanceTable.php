@@ -21,7 +21,7 @@ class SyndromicsurveillanceTable
     *
     * @return   codes       array       list of replrtable ICD9 codes
     */
-    function non_reported_codes()
+    public function non_reported_codes()
     {
         $query = "select id, concat('ICD9:',code) as name from codes where reportable = 1 ORDER BY name";
         return QueryUtils::fetchRecords($query);
@@ -32,7 +32,7 @@ class SyndromicsurveillanceTable
     *
     * @return   rows    Array   List of providers
     */
-    function getProviderList()
+    public function getProviderList()
     {
         global $encounter;
         global $pid;
@@ -57,7 +57,7 @@ class SyndromicsurveillanceTable
         ];
         $i = 1;
         foreach ($result as $row) {
-            $select = $row['id'] == ($provider ?? '') ? true : false;
+            $select = $row['id'] == ($provider ?? '');
 
             $rows[$i] =  [
                 'value' => $row['id'],
@@ -84,7 +84,7 @@ class SyndromicsurveillanceTable
     * @return   records         array       return the list of patients having the reportable ICD9 codes
     * @return   count           integer     return the count of patients having the reportable ICD9 codes
     */
-    function fetch_result($fromDate, $toDate, $code_selected, $provider_selected, $start, $end, $get_count = null)
+    public function fetch_result($fromDate, $toDate, $code_selected, $provider_selected, $start, $end, $get_count = null)
     {
         $records = [];
         $query_string = [];
@@ -165,7 +165,7 @@ class SyndromicsurveillanceTable
     *
     * @return   download the generated HL7
     */
-    function generate_hl7($fromDate, $toDate, $code_selected, $provider_selected, $start, $end)
+    public function generate_hl7($fromDate, $toDate, $code_selected, $provider_selected, $start, $end)
     {
         $records = [];
         $query_string = [];
@@ -386,6 +386,7 @@ class SyndromicsurveillanceTable
             foreach ($o_result as $row) {
                     $i++;
                 if ($row['code'] == 'SS003') {
+                    $text = '';
                     if ($row['ob_value'] == '261QE0002X') {
                         $text = 'Emergency Care';
                     } elseif ($row['ob_value'] == '261QM2500X') {
@@ -509,6 +510,7 @@ class SyndromicsurveillanceTable
         $date   = str_replace('/', '-', $date);
         $arr    = explode('-', $date);
 
+        $formatted_date = $date;
         if ($format == 'm/d/y') {
             $formatted_date = $arr[1] . "/" . $arr[2] . "/" . $arr[0];
         }
@@ -521,7 +523,7 @@ class SyndromicsurveillanceTable
     * param     string      Content in HL7 format
     * return    string      Formatted HL7 string
     */
-    function tr($a)
+    public function tr($a)
     {
         return (str_replace(' ', '^', $a));
     }

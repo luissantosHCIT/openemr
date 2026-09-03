@@ -880,15 +880,13 @@ class FHIRMedicinalProduct extends FHIRDomainResource implements \JsonSerializab
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<MedicinalProduct xmlns="http://hl7.org/fhir"></MedicinalProduct>');
-        }
+        $sxe ??= new \SimpleXMLElement('<MedicinalProduct xmlns="http://hl7.org/fhir"></MedicinalProduct>');
         parent::xmlSerialize(true, $sxe);
         if (0 < count($this->identifier)) {
             foreach ($this->identifier as $identifier) {

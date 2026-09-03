@@ -13,9 +13,11 @@
  */
 
     require_once("../../../globals.php");
-    require_once("$srcdir/api.inc.php");
-    require_once("$srcdir/forms.inc.php");
-    require_once("$srcdir/patient.inc.php");
+
+    $srcdir = \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir();
+    require_once($srcdir . "/api.inc.php");
+    require_once($srcdir . "/forms.inc.php");
+    require_once($srcdir . "/patient.inc.php");
 
     $providerID = $_REQUEST['providerID'];
 
@@ -932,13 +934,11 @@ function show_PRIOR_CANVAS_section(section, newValue) {
     var pid    =  $('#pid').val();
     var zone   = section;
     const params = new URLSearchParams({
-        as_file: 'false',
-        document: '',
         document_id: newValue,
         patient_id: pid,
-        retrieve: ''
+        as_file: 'false'
     });
-    const result = base + '/controller.php?' + params.toString();
+    const result = base + '/controller.php?document&retrieve&' + params;
     const cp_forward = '<button onclick="replace_CANVAS(\''+zone+'\',\''+result+'\'); return false;" id="Replace_Canvas_ANTSEG" class="ui-button ui-corner-all ui-widget"><?php echo xlt('Use this image'); ?></button>';
     const filler = "<div class='tools text-info'><?php echo xlt('Previous Encounter Drawings'); ?>: "+cp_forward+"</div><div class='borderShadow'><img src='"+result+"' alt='<?php echo xla("Loading prior image");?>...'></div>";
 
@@ -1043,22 +1043,13 @@ function editScripts(url) {
     var pid = $('#pid').val();
         var AddScript = function () {
             var iam = top.frames.editScripts;
-            const params = new URLSearchParams({
-                edit: '',
-                id: '',
-                pid: pid,
-                prescription: ''
-            });
-            iam.location.href = base + "/controller.php?" + params;
+            const params = new URLSearchParams({ id: '', pid: pid });
+            iam.location.href = base + "/controller.php?prescription&edit&" + params;
         };
         var ListScripts = function () {
             var iam = top.frames.editScripts;
-            const params = new URLSearchParams({
-                id: pid,
-                list: '',
-                prescription: ''
-            });
-            iam.location.href = base + "/controller.php?" + params;
+            const params = new URLSearchParams({ id: pid });
+            iam.location.href = base + "/controller.php?prescription&list&" + params;
         };
 
         let title = 'Prescriptions';
@@ -1893,17 +1884,6 @@ function goto_url(url) {
     R =  url;
     top.restoreSession();
     location.href = R;
-}
-//is this used anywhere?  Looks like it should be deleted...
-function openImage() {
-    const params = new URLSearchParams({
-        as_file: 'false',
-        document: '',
-        document_id: '10',
-        patient_id: '3',
-        retrieve: ''
-    });
-    dlgopen(base + '/controller.php?' + params.toString(), '_blank', 600, 475);
 }
 
 // Called to open a document in another tab for this encounter.
@@ -3497,12 +3477,21 @@ $("body").on("click","[name^='old_canvas']", function() {
                                             $query = "select * from list_options where list_id =? and activity='1' order by seq";
 
                                             $DEFAULT_data = sqlStatement($query, ["Eye_defaults_$providerID"]);
+                                            $zones = ['EXT' => [], 'ANTSEG' => [], 'RETINA' => [], 'NEURO' => []];
                                             while ($row = sqlFetchArray($DEFAULT_data)) {
                                             //$row['notes'] is the clinical zone (EXT,ANTSEG,RETINA,NEURO)
                                             //$row['option_id'] is the field name
                                             //$row['title'] is the default value to use for this provider
-                                                ${$row['notes']}[$row['option_id']] = $row['title']; //This builds each clinical section into its own array (used below)
-                                                echo '$("#' . $row['option_id'] . '").val("' . $row['title'] . '").css("background-color","beige");
+                                                $zone = $row['notes'];
+                                                $optionId = $row['option_id'];
+                                                $title = $row['title'];
+                                                if (!is_string($zone) || !is_string($optionId) || !is_string($title)) {
+                                                    continue;
+                                                }
+                                                if (isset($zones[$zone])) {
+                                                    $zones[$zone][$optionId] = $title;
+                                                }
+                                                echo '$("#' . $optionId . '").val("' . $title . '").css("background-color","beige");
                                             ';
                                             }
                                             function startsWith($str, $needle)
@@ -3514,7 +3503,7 @@ $("body").on("click","[name^='old_canvas']", function() {
                                             });
                   $("#EXT_defaults_R").on("click", function() {
                         <?php
-                        foreach ($EXT as $item => $value) {
+                        foreach ($zones['EXT'] as $item => $value) {
                             if (startsWith($item, "R")) {
                                 echo '$("#' . $item . '").val("' . $value . '").css("background-color","beige");
                                                                                 ';
@@ -3526,7 +3515,7 @@ $("body").on("click","[name^='old_canvas']", function() {
                         });
                   $("#EXT_defaults_L").on("click", function() {
                         <?php
-                        foreach ($EXT as $item => $value) {
+                        foreach ($zones['EXT'] as $item => $value) {
                             if (startsWith($item, "L")) {
                                 echo '$("#' . $item . '").val("' . $value . '").css("background-color","beige");
                                                                                 ';
@@ -3560,7 +3549,7 @@ $("body").on("click","[name^='old_canvas']", function() {
                     });
                     $("#ANTSEG_defaults_OD").on("click", function() {
                     <?php
-                    foreach ($ANTSEG as $item => $value) {
+                    foreach ($zones['ANTSEG'] as $item => $value) {
                         if (startsWith($item, "OD")) {
                             echo '$("#' . $item . '").val("' . $value . '").css("background-color","beige");
                                                                                                     ';
@@ -3572,7 +3561,7 @@ $("body").on("click","[name^='old_canvas']", function() {
                     });
                     $("#ANTSEG_defaults_OS").on("click", function() {
                             <?php
-                            foreach ($ANTSEG as $item => $value) {
+                            foreach ($zones['ANTSEG'] as $item => $value) {
                                 if (startsWith($item, "OS")) {
                                     echo '$("#' . $item . '").val("' . $value . '").css("background-color","beige");
                                                                                                             ';
@@ -3647,7 +3636,7 @@ $("body").on("click","[name^='old_canvas']", function() {
 
                     $("#RETINA_defaults_OD").on("click", function() {
                             <?php
-                            foreach ($RETINA as $item => $value) {
+                            foreach ($zones['RETINA'] as $item => $value) {
                                 if (startsWith($item, "OD")) {
                                     echo '$("#' . $item . '").val("' . $value . '").css("background-color","beige");
                                                                                                             ';
@@ -3659,7 +3648,7 @@ $("body").on("click","[name^='old_canvas']", function() {
                             });
                     $("#RETINA_defaults_OS").on("click", function() {
                         <?php
-                        foreach ($RETINA as $item => $value) {
+                        foreach ($zones['RETINA'] as $item => $value) {
                             if (startsWith($item, "OS")) {
                                 echo '$("#' . $item . '").val("' . $value . '").css("background-color","beige");
                                                                                                         ';
@@ -3677,7 +3666,7 @@ $("body").on("click","[name^='old_canvas']", function() {
 
                     $("#NEURO_defaults").on("click", function() {
                                                 <?php
-                                                foreach ($NEURO as $item => $value) {
+                                                foreach ($zones['NEURO'] as $item => $value) {
                                                     echo '$("#' . $item . '").val("' . $value . '").css("background-color","beige");
                                              ';
                                                 }

@@ -14,12 +14,12 @@
 namespace OpenEMR\Controllers\Interface\Forms\Observation;
 
 use InvalidArgumentException;
+use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Forms\ReasonStatusCodes;
 use OpenEMR\Common\Logging\SystemLoggerAwareTrait;
 use OpenEMR\Common\Session\SessionWrapperFactory;
-use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\FHIR\Config\ServerConfig;
@@ -51,7 +51,7 @@ class ObservationController
         ?Environment $twig = null,
         private ?PatientService $patientService = new PatientService()
     ) {
-        $this->twig = $twig ?? (new TwigContainer(null, OEGlobalsBag::getInstance()->getKernel()))->getTwig();
+        $this->twig = $twig ?? ServiceContainer::getTwig();
         $this->codeTypeService = new CodeTypesService();
     }
 
@@ -253,7 +253,10 @@ class ObservationController
             );
         }
 
-        $formId = $request->query->getInt('id');
+        // The edit template renders `?id=` (empty) for a fresh observation, so
+        // use get()+cast rather than InputBag::getInt() which throws on
+        // present-but-non-int values.
+        $formId = (int) $request->query->get('id', 0);
         $postData = $request->request->all();
 
         try {
@@ -262,9 +265,7 @@ class ObservationController
 
             // we have to keep id as the formId due to backwards compatibility
             return $this->createRedirectResponse(
-                OEGlobalsBag::getInstance()->get('webroot') . "/interface/forms/observation/new.php?id="
-                . urlencode((string) $observation['form_id'])
-                . "&status=saved"
+                $this->buildObservationFormUrl((int) $observation['form_id'], 'saved')
             );
         } catch (\Throwable $e) {
             $this->getSystemLogger()->error("Error saving observation", [
@@ -492,8 +493,7 @@ class ObservationController
             if (!$observation) {
                 // observation may have already been deleted, just redirect to list with success to avoid error loops
                 return $this->createRedirectResponse(
-                    OEGlobalsBag::getInstance()->get('webroot') . "/interface/forms/observation/new.php?id=" . urlencode($formId)
-                    . "&status=delete_success" // still redirect to list with success to avoid error loops
+                    $this->buildObservationFormUrl($formId, 'delete_success')
                 );
             }
             if ($observation['form_id'] != $formId) {
@@ -509,8 +509,7 @@ class ObservationController
             QueryUtils::commitTransaction();
             $committed = true;
             return $this->createRedirectResponse(
-                OEGlobalsBag::getInstance()->get('webroot') . "/interface/forms/observation/new.php?id=" . urlencode($formId)
-                . "&status=delete_success" // still redirect to list with success to avoid error loops
+                $this->buildObservationFormUrl($formId, 'delete_success')
             );
         } catch (\Throwable $e) {
             $this->getSystemLogger()->error("Error deleting observation", [
@@ -518,8 +517,7 @@ class ObservationController
                 'formId' => $formId
             ]);
             return $this->createRedirectResponse(
-                OEGlobalsBag::getInstance()->get('webroot') . "/interface/forms/observation/new.php?id=" . urlencode($formId)
-                . "&status=delete_failed" // let them know that the delete failed
+                $this->buildObservationFormUrl($formId, 'delete_failed')
             );
         } finally {
             if (!$committed) {
@@ -574,6 +572,13 @@ class ObservationController
     private function createRedirectResponse(string $url, int $status = Response::HTTP_SEE_OTHER): Response
     {
         return new RedirectResponse($url, $status);
+    }
+
+    private function buildObservationFormUrl(int|string $formId, string $status): string
+    {
+        return OEGlobalsBag::getInstance()->getWebRoot()
+            . "/interface/forms/observation/new.php?id=" . urlencode((string) $formId)
+            . "&status=" . urlencode($status);
     }
 
     /**

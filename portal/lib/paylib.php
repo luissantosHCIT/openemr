@@ -14,6 +14,8 @@
 
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Billing\PaymentGateway;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Session\PortalSessionPidGuard;
 use OpenEMR\Common\Session\SessionUtil;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 
@@ -26,7 +28,10 @@ $sessionAllowWrite = true;
 SessionWrapperFactory::getInstance()->setSessionReadOnly(false);
 $session = SessionWrapperFactory::getInstance()->getActiveSession();
 
+$isPortal = false;
+$pid = null;
 if (!empty($session->get('pid')) && !empty($session->get('patient_portal_onsite_two'))) {
+    $isPortal = true;
     $pid = $session->get('pid');
     $ignoreAuth_onsite_portal = true;
     require_once(__DIR__ . "/../../interface/globals.php");
@@ -50,21 +55,44 @@ if ($session->get('portal_init') !== true) {
 
 SessionUtil::setSession('portal_init', false);
 
-if ($_POST['mode'] == 'Sphere') {
-    $cryptoGen = ServiceContainer::getCrypto();
-    $dataTrans = $cryptoGen->decryptStandard(is_string($_POST['enc_data']) ? $_POST['enc_data'] : null);
-    $dataTrans = json_decode($dataTrans, true);
+if (filter_input(INPUT_SERVER, 'REQUEST_METHOD') === 'POST') {
+    CsrfUtils::checkCsrfInput(INPUT_POST, subject: 'portal-payment', dieOnFail: true);
+}
 
-    $form_pid = $dataTrans['get']['patient_id_cc'];
+if ($_POST['mode'] === 'Sphere') {
+    // Sphere patient portal payments require an authenticated portal session
+    if (!isset($pid) || !is_int($pid)) {
+        http_response_code(403);
+        echo 'Unauthorized';
+        exit;
+    }
 
-    $cc = [];
-    $cc["cardHolderName"] = $dataTrans['post']['name'];
-    $cc['status'] = $dataTrans['post']['status_name'];
-    $cc['authCode'] = $dataTrans['post']['authcode'];
-    $cc['transId'] = $dataTrans['post']['transid'];
-    $cc['cardNumber'] = "******** " . $dataTrans['post']['cc'];
-    $cc['cc_type'] = $dataTrans['post']['ccBrand'];
-    $cc['zip'] = '';
+    $ticket = filter_input(INPUT_POST, 'sphere_ticket') ?? '';
+    $sessionKey = 'sphere_payment_result_' . $ticket;
+
+    $paymentResult = $session->get($sessionKey);
+    SessionUtil::unsetSession($sessionKey);
+
+    if (!is_array($paymentResult)) {
+        http_response_code(400);
+        echo 'Missing or invalid payment data';
+        exit;
+    }
+
+    $form_pid = $paymentResult['patient_id'] ?? 0;
+    if ($isPortal) {
+        PortalSessionPidGuard::assertMatchesSession($form_pid, $pid);
+    }
+
+    $cc = [
+        'cardHolderName' => $paymentResult['name'] ?? '',
+        'status' => $paymentResult['status_name'] ?? '',
+        'authCode' => $paymentResult['authcode'] ?? '',
+        'transId' => $paymentResult['transid'] ?? '',
+        'cardNumber' => '******** ' . ($paymentResult['cc'] ?? ''),
+        'cc_type' => $paymentResult['ccBrand'] ?? '',
+        'zip' => '',
+    ];
     $ccaudit = json_encode($cc);
     $invoice = $_POST['invValues'] ?? '';
 
@@ -73,16 +101,21 @@ if ($_POST['mode'] == 'Sphere') {
     SaveAudit($form_pid, $invoice, $ccaudit);
 
     echo 'ok';
+    exit;
 }
 
 if ($_POST['mode'] == 'AuthorizeNet') {
     $form_pid = $_POST['form_pid'];
+    if ($isPortal) {
+        PortalSessionPidGuard::assertMatchesSession($form_pid, $pid);
+    }
     $pay = new PaymentGateway("AuthorizeNetApi_Api");
     $transaction['amount'] = $_POST['payment'];
     $transaction['currency'] = "USD";
     $transaction['opaqueDataDescriptor'] = $_POST['dataDescriptor'];
     $transaction['opaqueDataValue'] = $_POST['dataValue'];
     try {
+        /** @var \Omnipay\AuthorizeNetApi\Message\Response|string $response */
         $response = $pay->submitPaymentToken($transaction);
         if (is_string($response)) {
             echo $response;
@@ -115,11 +148,15 @@ if ($_POST['mode'] == 'AuthorizeNet') {
 
 if ($_POST['mode'] == 'Stripe') {
     $form_pid = $_POST['form_pid'];
+    if ($isPortal) {
+        PortalSessionPidGuard::assertMatchesSession($form_pid, $pid);
+    }
     $pay = new PaymentGateway("Stripe");
     $transaction['amount'] = $_POST['payment'];
     $transaction['currency'] = "USD";
     $transaction['token'] = $_POST['stripeToken'];
     try {
+        /** @var \Omnipay\Stripe\Message\Response|string $response */
         $response = $pay->submitPaymentToken($transaction);
         if (is_string($response)) {
             echo $response;
@@ -133,7 +170,7 @@ if ($_POST['mode'] == 'Stripe') {
         $cc['transId'] = $response->getTransactionReference();
         $cc['cardNumber'] = "******** " . $r['last4'];
         $cc['cc_type'] = $r['brand'];
-        $cc['zip'] = $r->address_zip;
+        $cc['zip'] = $r['address_zip'] ?? null;
         $ccaudit = json_encode($cc);
         $invoice = $_POST['invValues'] ?? '';
     } catch (\Throwable $ex) {
@@ -152,6 +189,9 @@ if ($_POST['mode'] == 'Stripe') {
 
 if ($_POST['mode'] == 'portal-save') {
     $form_pid = $_POST['form_pid'];
+    if ($isPortal) {
+        PortalSessionPidGuard::assertMatchesSession($form_pid, $pid);
+    }
     $form_method = trim((string) $_POST['form_method']);
     $form_source = trim((string) $_POST['form_source']);
     $upay = $_POST['form_upay'] ?? '';
@@ -166,6 +206,9 @@ if ($_POST['mode'] == 'portal-save') {
     echo true;
 } elseif ($_POST['mode'] == 'review-save') {
     $form_pid = $_POST['form_pid'];
+    if ($isPortal) {
+        PortalSessionPidGuard::assertMatchesSession($form_pid, $pid);
+    }
     $form_method = trim((string) $_POST['form_method']);
     $form_source = trim((string) $_POST['form_source']);
     $upay = $_POST['form_upay'] ?? '';
@@ -197,7 +240,7 @@ function SaveAudit($pid, $amts, $cc)
         $audit['action_user'] = "0";
         $audit['action_taken_time'] = "";
         $cryptoGen = ServiceContainer::getCrypto();
-        $audit['checksum'] = $cryptoGen->encryptStandard(is_string($cc) ? $cc : null);
+        $audit['checksum'] = $cryptoGen->encryptForDatabase(is_string($cc) ? $cc : null);
 
         $edata = $appsql->getPortalAudit($pid, 'review', 'payment');
         $audit['date'] = $edata['date'];
@@ -231,7 +274,7 @@ function CloseAudit($pid, $amts, $cc, $action = 'payment posted', $paction = 'no
         $audit['action_user'] = $session->get('authUserID', "0");
         $audit['action_taken_time'] = date("Y-m-d H:i:s");
         $cryptoGen = ServiceContainer::getCrypto();
-        $audit['checksum'] = $cryptoGen->encryptStandard(is_string($cc) ? $cc : null);
+        $audit['checksum'] = $cryptoGen->encryptForDatabase(is_string($cc) ? $cc : null);
 
         $edata = $appsql->getPortalAudit($pid, 'review', 'payment');
         $audit['date'] = $edata['date'];

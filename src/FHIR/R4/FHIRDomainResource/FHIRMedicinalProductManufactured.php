@@ -365,15 +365,13 @@ class FHIRMedicinalProductManufactured extends FHIRDomainResource implements \Js
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<MedicinalProductManufactured xmlns="http://hl7.org/fhir"></MedicinalProductManufactured>');
-        }
+        $sxe ??= new \SimpleXMLElement('<MedicinalProductManufactured xmlns="http://hl7.org/fhir"></MedicinalProductManufactured>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->manufacturedDoseForm)) {
             $this->manufacturedDoseForm->xmlSerialize(true, $sxe->addChild('manufacturedDoseForm'));

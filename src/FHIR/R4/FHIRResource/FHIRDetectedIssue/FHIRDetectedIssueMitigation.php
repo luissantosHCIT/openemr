@@ -208,15 +208,13 @@ class FHIRDetectedIssueMitigation extends FHIRBackboneElement implements \JsonSe
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<DetectedIssueMitigation xmlns="http://hl7.org/fhir"></DetectedIssueMitigation>');
-        }
+        $sxe ??= new \SimpleXMLElement('<DetectedIssueMitigation xmlns="http://hl7.org/fhir"></DetectedIssueMitigation>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->action)) {
             $this->action->xmlSerialize(true, $sxe->addChild('action'));

@@ -252,15 +252,13 @@ class FHIRMedicationKnowledgeAdministrationGuidelines extends FHIRBackboneElemen
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<MedicationKnowledgeAdministrationGuidelines xmlns="http://hl7.org/fhir"></MedicationKnowledgeAdministrationGuidelines>');
-        }
+        $sxe ??= new \SimpleXMLElement('<MedicationKnowledgeAdministrationGuidelines xmlns="http://hl7.org/fhir"></MedicationKnowledgeAdministrationGuidelines>');
         parent::xmlSerialize(true, $sxe);
         if (0 < count($this->dosage)) {
             foreach ($this->dosage as $dosage) {

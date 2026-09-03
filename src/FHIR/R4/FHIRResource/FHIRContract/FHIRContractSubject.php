@@ -185,15 +185,13 @@ class FHIRContractSubject extends FHIRBackboneElement implements \JsonSerializab
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ContractSubject xmlns="http://hl7.org/fhir"></ContractSubject>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ContractSubject xmlns="http://hl7.org/fhir"></ContractSubject>');
         parent::xmlSerialize(true, $sxe);
         if (0 < count($this->reference)) {
             foreach ($this->reference as $reference) {

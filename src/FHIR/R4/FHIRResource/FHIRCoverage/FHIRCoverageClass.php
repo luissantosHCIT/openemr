@@ -208,15 +208,13 @@ class FHIRCoverageClass extends FHIRBackboneElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<CoverageClass xmlns="http://hl7.org/fhir"></CoverageClass>');
-        }
+        $sxe ??= new \SimpleXMLElement('<CoverageClass xmlns="http://hl7.org/fhir"></CoverageClass>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->type)) {
             $this->type->xmlSerialize(true, $sxe->addChild('type'));

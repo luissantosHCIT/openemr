@@ -7,15 +7,18 @@
  * @link      https://www.open-emr.org
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @author    Michael A. Smith <michael@opencoreemr.com>
  * @copyright Copyright (c) 2010 Open Support LLC
  * @copyright Copyright (c) 2018 Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2025 Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+declare(strict_types=1);
+
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Database\QueryUtils;
-use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\OEGlobalsBag;
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -29,7 +32,7 @@ class MyMailer extends PHPMailer
     public $Port;
     public $CharSet;
 
-    function __construct($throwExceptions = false)
+    public function __construct($throwExceptions = false)
     {
         // make sure we initiate our constructor here...
         parent::__construct($throwExceptions);
@@ -125,8 +128,7 @@ class MyMailer extends PHPMailer
 
                 if ($emailMethodConfigured) {
                     try {
-                        $twigContainer = new TwigContainer(null, OEGlobalsBag::getInstance()->getKernel());
-                        $twig = $twigContainer->getTwig();
+                        $twig = ServiceContainer::getTwig();
                         if (!empty($ret['template_name'])) {
                             $templateData = json_decode((string) $ret['body'], true);
                             // we make sure to prefix this so that people have to work inside the openemr namespace for email templates
@@ -178,10 +180,18 @@ class MyMailer extends PHPMailer
     /**
      * @return void
      */
-    function emailMethod(): void
+    public function emailMethod(): void
     {
-        global $HTML_CHARSET;
-        $this->CharSet = $HTML_CHARSET;
+        // OpenEMR is hardcoded to UTF-8 (see interface/globals.php). Set it
+        // explicitly rather than reading the legacy $HTML_CHARSET global,
+        // which is not reliably defined in every entry point. PHPUnit, for
+        // example, loads its bootstrap via `include_once` inside a method
+        // scope, so the `$HTML_CHARSET = "UTF-8"` assignment in globals.php
+        // never escapes to global scope there. A null CharSet makes PHPMailer
+        // emit encoded-word subject headers with an empty charset declaration
+        // (=??Q?...?=) and triggers strlen(null) / strtolower(null)
+        // deprecations from PHPMailer on PHP 8.2+.
+        $this->CharSet = PHPMailer::CHARSET_UTF8;
         switch (OEGlobalsBag::getInstance()->get('EMAIL_METHOD')) {
             case "PHPMAIL":
                 $this->Mailer = "mail";
@@ -192,7 +202,7 @@ class MyMailer extends PHPMailer
                 $this->Host = OEGlobalsBag::getInstance()->getString('SMTP_HOST');
                 $this->Username = OEGlobalsBag::getInstance()->getString('SMTP_USER');
                 $cryptoGen = ServiceContainer::getCrypto();
-                $this->Password = $cryptoGen->decryptStandard(OEGlobalsBag::getInstance()->getString('SMTP_PASS'));
+                $this->Password = $cryptoGen->decryptFromDatabase(OEGlobalsBag::getInstance()->getString('SMTP_PASS'));
                 $this->Port = OEGlobalsBag::getInstance()->getInt('SMTP_PORT');
                 $this->SMTPSecure = OEGlobalsBag::getInstance()->get('SMTP_SECURE');
                 break;

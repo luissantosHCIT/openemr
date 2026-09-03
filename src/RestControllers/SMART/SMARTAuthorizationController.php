@@ -5,7 +5,9 @@
  * @package openemr
  * @link      https://www.open-emr.org
  * @author    Stephen Nielson <stephen@nielson.org>
+ * @author    Michael A. Smith <michael@opencoreemr.com>
  * @copyright Copyright (c) 2021 Stephen Nielson <stephen@nielson.org>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -98,9 +100,7 @@ class SMARTAuthorizationController
 
     public function getPatientContextSearchController(): PatientContextSearchController
     {
-        if (!isset($this->patientContextSearchController)) {
-            $this->patientContextSearchController = new PatientContextSearchController(new PatientService(), $this->logger);
-        }
+        $this->patientContextSearchController ??= new PatientContextSearchController(new PatientService(), $this->logger);
         return $this->patientContextSearchController;
     }
 
@@ -323,7 +323,10 @@ class SMARTAuthorizationController
         return $this->twig;
     }
 
-    private function renderTwigPage($pageName, $template, $templateVars): ResponseInterface
+    /**
+     * @param array<string, mixed> $templateVars
+     */
+    private function renderTwigPage(string $pageName, string $template, array $templateVars): ResponseInterface
     {
         $twig = $this->getTwig();
         $templatePageEvent = new TemplatePageEvent($pageName, [], $template, $templateVars);
@@ -345,7 +348,10 @@ class SMARTAuthorizationController
         }
     }
 
-    private function renderTwigJson($pageName, $template, $templateVars, $defaultTemplate = null): ResponseInterface
+    /**
+     * @param array<string, mixed> $templateVars
+     */
+    private function renderTwigJson(string $pageName, string $template, array $templateVars, ?string $defaultTemplate = null): ResponseInterface
     {
         $twig = $this->getTwig();
         $templatePageEvent = new TemplatePageEvent($pageName, [], $template, $templateVars);
@@ -416,7 +422,7 @@ class SMARTAuthorizationController
         $coreTheme = !empty($parts[0]) ? $parts[0] : "style_light";
         $logoService = $this->getLogoService();
         // do we want to expose each of the logos?  These really need to be cached instead of hitting FS each time...
-        $primaryLogo = $this->globalsBag->get('site_addr_oath') . $this->globalsBag->get('web_root') . $logoService->getLogo("core/login/primary");
+        $primaryLogo = $this->globalsBag->get('site_addr_oath') . $this->globalsBag->getKernel()->getWebRoot() . $logoService->getLogo("core/login/primary");
         $context = [
             'logo' => [
                 'primary' => $primaryLogo
@@ -433,9 +439,7 @@ class SMARTAuthorizationController
 
     public function getLogoService(): LogoService
     {
-        if (!isset($this->logoService)) {
-            $this->logoService = new LogoService();
-        }
+        $this->logoService ??= new LogoService();
         return $this->logoService;
     }
 }

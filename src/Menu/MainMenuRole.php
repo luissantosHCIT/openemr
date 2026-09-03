@@ -20,14 +20,9 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 class MainMenuRole extends MenuRole
 {
     /**
-     * @var EventDispatcher
-     */
-    private $dispatcher;
-
-    /**
      * Constructor
      */
-    public function __construct(EventDispatcherInterface $dispatcher)
+    public function __construct(private readonly EventDispatcherInterface $dispatcher)
     {
         // This is where the magic happens to support special menu items.
         //   An empty menu_update_map array is created in MenuRole class
@@ -36,7 +31,6 @@ class MainMenuRole extends MenuRole
         parent::__construct();
         $this->menu_update_map["Visit Forms"] = "updateVisitForms";
         $this->menu_update_map["Blank Forms"] = "updateBlankForms";
-        $this->dispatcher = $dispatcher;
     }
 
     /**
@@ -61,7 +55,7 @@ class MainMenuRole extends MenuRole
             $menu_parsed = json_decode(file_get_contents(OEGlobalsBag::getInstance()->get('OE_SITE_DIR') . "/documents/custom_menus/" . $mainMenuRole));
         } else {
             // load a standardized menu (does not include .json in id)
-            $menu_parsed = json_decode(file_get_contents(OEGlobalsBag::getInstance()->get('fileroot') . "/interface/main/tabs/menu/menus/" . $mainMenuRole . ".json"));
+            $menu_parsed = json_decode(file_get_contents(OEGlobalsBag::getInstance()->getKernel()->getProjectDir() . "/interface/main/tabs/menu/menus/" . $mainMenuRole . ".json"));
         }
 
         // if error, then die and report error

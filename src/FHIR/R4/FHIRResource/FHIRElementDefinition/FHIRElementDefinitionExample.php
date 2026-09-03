@@ -1566,15 +1566,13 @@ class FHIRElementDefinitionExample extends FHIRBackboneElement implements \JsonS
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ElementDefinitionExample xmlns="http://hl7.org/fhir"></ElementDefinitionExample>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ElementDefinitionExample xmlns="http://hl7.org/fhir"></ElementDefinitionExample>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->label)) {
             $this->label->xmlSerialize(true, $sxe->addChild('label'));

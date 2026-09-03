@@ -25,15 +25,20 @@ use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\View\Model\JsonModel;
 use Laminas\View\Model\ViewModel;
 use OpenEMR\BC\ServiceContainer;
-use OpenEMR\Common\Twig\TwigContainer;
+use OpenEMR\Common\Http\RequestTerminator;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Cqm\QrdaControllers\QrdaReportController;
 use OpenEMR\Services\FacilityService;
 use OpenEMR\Services\PractitionerService;
 use OpenEMR\Services\Qrda\QrdaReportService;
 use OpenEMR\Validators\ProcessingResult;
+use Symfony\Component\HttpFoundation\Response;
 use XSLTProcessor;
 
+/**
+ * @method \Application\Plugin\CommonPlugin CommonPlugin()
+ * @method \Laminas\Http\Request getRequest()
+ */
 class EncountermanagerController extends AbstractActionController
 {
     // TODO: is there a better place for this?  These are the values from the applications/sendto/sendto.phtml for
@@ -109,6 +114,8 @@ class EncountermanagerController extends AbstractActionController
             || ($downloadqrda3_consolidated == 'download_qrda3_consolidated')
         ) {
             $pids = '';
+            $combination = null;
+            $pid = null;
             if ($request->getQuery('pid_ccda')) {
                 $pid = $request->getQuery('pid_ccda');
                 if ($pid != '') {
@@ -235,20 +242,26 @@ class EncountermanagerController extends AbstractActionController
 
         $document = new \Document($docId);
         try {
-            $twig = new TwigContainer(null, OEGlobalsBag::getInstance()->getKernel());
+            $twig = ServiceContainer::getTwig();
             // can_access will check session if no params are passed.
             if (!$document->can_access()) {
-                echo $twig->getTwig()->render("templates/error/400.html.twig", ['statusCode' => 401, 'errorMessage' => 'Access Denied']);
-                exit;
+                (new RequestTerminator())->respond(new Response(
+                    $twig->render("templates/error/400.html.twig", ['statusCode' => 401, 'errorMessage' => 'Access Denied']),
+                    Response::HTTP_UNAUTHORIZED,
+                ));
             } elseif ($document->is_deleted()) {
-                echo $twig->getTwig()->render("templates/error/404.html.twig");
-                exit;
+                (new RequestTerminator())->respond(new Response(
+                    $twig->render("templates/error/404.html.twig"),
+                    Response::HTTP_NOT_FOUND,
+                ));
             }
 
             $content = $document->get_data();
             if (empty($content)) {
-                echo $twig->getTwig()->render("templates/error/404.html.twig");
-                exit;
+                (new RequestTerminator())->respond(new Response(
+                    $twig->render("templates/error/404.html.twig"),
+                    Response::HTTP_NOT_FOUND,
+                ));
             }
             $content = $document->get_data();
 

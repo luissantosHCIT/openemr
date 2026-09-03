@@ -176,15 +176,13 @@ class FHIRPersonLink extends FHIRBackboneElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<PersonLink xmlns="http://hl7.org/fhir"></PersonLink>');
-        }
+        $sxe ??= new \SimpleXMLElement('<PersonLink xmlns="http://hl7.org/fhir"></PersonLink>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->target)) {
             $this->target->xmlSerialize(true, $sxe->addChild('target'));

@@ -273,15 +273,13 @@ class FHIRCoding extends FHIRElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<Coding xmlns="http://hl7.org/fhir"></Coding>');
-        }
+        $sxe ??= new \SimpleXMLElement('<Coding xmlns="http://hl7.org/fhir"></Coding>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->system)) {
             $this->system->xmlSerialize(true, $sxe->addChild('system'));

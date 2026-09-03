@@ -176,15 +176,13 @@ class FHIRRequestGroupCondition extends FHIRBackboneElement implements \JsonSeri
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<RequestGroupCondition xmlns="http://hl7.org/fhir"></RequestGroupCondition>');
-        }
+        $sxe ??= new \SimpleXMLElement('<RequestGroupCondition xmlns="http://hl7.org/fhir"></RequestGroupCondition>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->kind)) {
             $this->kind->xmlSerialize(true, $sxe->addChild('kind'));

@@ -4,7 +4,7 @@
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Eric Stern <erics@opencoreemr.com>
- * @copyright Copyright (c) 2026 OpenCoreEMR
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -51,7 +51,7 @@ class CipherSuiteTest extends TestCase
         $ciphertext = new Ciphertext('encrypted bytes');
 
         $this->cipher->method('encrypt')
-            ->with(self::callback(fn (Plaintext $pt) => $pt->bytes === $plaintext))
+            ->with(self::callback(fn (Plaintext $pt): bool => $pt->bytes === $plaintext))
             ->willReturn($ciphertext);
 
         $encrypted = $this->suite->encrypt($plaintext);
@@ -60,7 +60,7 @@ class CipherSuiteTest extends TestCase
 
         $this->cipher->expects(self::once())
             ->method('decrypt')
-            ->with(self::callback(fn (Ciphertext $c) => $c->value === $ciphertext->value))
+            ->with(self::callback(fn (Ciphertext $c): bool => $c->value === $ciphertext->value))
             ->willReturn(new Plaintext($plaintext));
 
         $decrypted = $this->suite->decrypt($encrypted);
@@ -74,7 +74,7 @@ class CipherSuiteTest extends TestCase
         $ciphertext = new Ciphertext('encrypted bytes');
 
         $this->cipher->method('encrypt')
-            ->with(self::callback(fn (Plaintext $pt) => $pt->bytes === $plaintext->bytes))
+            ->with(self::callback(fn (Plaintext $pt): bool => $pt->bytes === $plaintext->bytes))
             ->willReturn($ciphertext);
 
         $encrypted = $this->suite->encrypt($plaintext);
@@ -83,7 +83,7 @@ class CipherSuiteTest extends TestCase
 
         $this->cipher->expects(self::once())
             ->method('decrypt')
-            ->with(self::callback(fn (Ciphertext $c) => $c->value === $ciphertext->value))
+            ->with(self::callback(fn (Ciphertext $c): bool => $c->value === $ciphertext->value))
             ->willReturn($plaintext);
 
         $decrypted = $this->suite->decrypt($encrypted);

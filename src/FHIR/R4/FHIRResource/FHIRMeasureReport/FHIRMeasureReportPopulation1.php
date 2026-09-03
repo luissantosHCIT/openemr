@@ -208,15 +208,13 @@ class FHIRMeasureReportPopulation1 extends FHIRBackboneElement implements \JsonS
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<MeasureReportPopulation1 xmlns="http://hl7.org/fhir"></MeasureReportPopulation1>');
-        }
+        $sxe ??= new \SimpleXMLElement('<MeasureReportPopulation1 xmlns="http://hl7.org/fhir"></MeasureReportPopulation1>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->code)) {
             $this->code->xmlSerialize(true, $sxe->addChild('code'));

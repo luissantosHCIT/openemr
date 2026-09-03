@@ -17,10 +17,10 @@
 
 namespace ESign;
 
-require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/ESign/Abstract/Controller.php';
-require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/ESign/Form/Configuration.php';
-require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/ESign/Form/Factory.php';
-require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/ESign/Form/Log.php';
+require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/ESign/Abstract/Controller.php';
+require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/ESign/Form/Configuration.php';
+require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/ESign/Form/Factory.php';
+require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/ESign/Form/Log.php';
 
 use OpenEMR\Common\Auth\AuthUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
@@ -43,7 +43,7 @@ class Form_Controller extends Abstract_Controller
         $form->action = '#';
         $signable = new Form_Signable($form->formId, $form->formDir, $form->encounterId);
         $form->showLock = false;
-        $form->displayGoogleSignin = (OEGlobalsBag::getInstance()->getBoolean('google_signin_enabled') && !empty(OEGlobalsBag::getInstance()->getString('google_signin_client_id'))) ? true : false;
+        $form->displayGoogleSignin = OEGlobalsBag::getInstance()->getBoolean('google_signin_enabled') && !empty(OEGlobalsBag::getInstance()->getString('google_signin_client_id'));
         $form->googleSigninClientID = OEGlobalsBag::getInstance()->getString('google_signin_client_id');
         if (
             $signable->isLocked() === false &&
@@ -73,7 +73,7 @@ class Form_Controller extends Abstract_Controller
 
     /**
      *
-     * @return multitype:string
+     * @return string[]
      */
     public function esign_form_submit()
     {
@@ -98,7 +98,7 @@ class Form_Controller extends Abstract_Controller
         // Always lock, unless esign_lock_toggle option is enable in globals
         $lock = true;
         if (OEGlobalsBag::getInstance()->getBoolean('esign_lock_toggle')) {
-            $lock = ( $this->getRequest()->getParam('lock', '') == 'on' ) ? true : false;
+            $lock = $this->getRequest()->getParam('lock', '') == 'on';
         }
 
         $amendment = $this->getRequest()->getParam('amendment', '');

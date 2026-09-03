@@ -138,15 +138,13 @@ class FHIRStructureDefinitionKind extends FHIRElement implements \JsonSerializab
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<StructureDefinitionKind xmlns="http://hl7.org/fhir"></StructureDefinitionKind>');
-        }
+        $sxe ??= new \SimpleXMLElement('<StructureDefinitionKind xmlns="http://hl7.org/fhir"></StructureDefinitionKind>');
         $sxe->addAttribute('value', $this->value);
         if ($returnSXE) {
             return $sxe;

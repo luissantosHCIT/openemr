@@ -337,15 +337,13 @@ class FHIRSampledData extends FHIRElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<SampledData xmlns="http://hl7.org/fhir"></SampledData>');
-        }
+        $sxe ??= new \SimpleXMLElement('<SampledData xmlns="http://hl7.org/fhir"></SampledData>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->origin)) {
             $this->origin->xmlSerialize(true, $sxe->addChild('origin'));

@@ -126,7 +126,7 @@ class FhirMedicationRequestService extends FhirServiceBase implements IResourceU
      * Parses an OpenEMR prescription record, returning the equivalent FHIR Patient Resource
      *
      * @param array $dataRecord The source OpenEMR data record
-     * @param boolean $encode Indicates if the returned resource is encoded into a string. Defaults to false.
+     * @param bool $encode Indicates if the returned resource is encoded into a string. Defaults to false.
      * @return FHIRMedicationRequest|string
      */
     public function parseOpenEMRRecord($dataRecord = [], $encode = false): FHIRMedicationRequest|string
@@ -212,18 +212,27 @@ class FhirMedicationRequestService extends FhirServiceBase implements IResourceU
         return $this->getPrescriptionService()->getAll($openEMRSearchParameters);
     }
 
-    public function createProvenanceResource($dataRecord = [], $encode = false): FHIRProvenance|string
+    public function createProvenanceResource($dataRecord = [], $encode = false): FHIRProvenance|string|false
     {
         if (!($dataRecord instanceof FHIRMedicationRequest)) {
             throw new \BadMethodCallException("Data record should be correct instance class");
         }
-        $fhirProvenanceService = new FhirProvenanceService();
-        $fhirProvenance = $fhirProvenanceService->createProvenanceForDomainResource($dataRecord, $dataRecord->getRequester());
-        if ($encode) {
-            return json_encode($fhirProvenance);
-        } else {
-            return $fhirProvenance;
+        $fhirProvenance = $this->getFhirProvenanceService()->createProvenanceForDomainResource($dataRecord, $dataRecord->getRequester());
+        if ($fhirProvenance === null) {
+            // Provenance can legitimately be unavailable (e.g. no resolvable organization/author
+            // reference); FhirServiceBase::getAll() treats a falsy return as "no provenance
+            // available" and continues (see issue #13054).
+            return false;
         }
+        return $encode ? json_encode($fhirProvenance) : $fhirProvenance;
+    }
+
+    /**
+     * Seam so unit tests can substitute the provenance factory.
+     */
+    protected function getFhirProvenanceService(): FhirProvenanceService
+    {
+        return new FhirProvenanceService();
     }
 
     /**
@@ -545,9 +554,7 @@ class FhirMedicationRequestService extends FhirServiceBase implements IResourceU
 
     public function getCodeTypesService(): CodeTypesService
     {
-        if (!isset($this->codeTypesService)) {
-            $this->codeTypesService = new CodeTypesService();
-        }
+        $this->codeTypesService ??= new CodeTypesService();
         return $this->codeTypesService;
     }
 
@@ -564,9 +571,7 @@ class FhirMedicationRequestService extends FhirServiceBase implements IResourceU
      */
     public function getPrescriptionService(): PrescriptionService
     {
-        if (!isset($this->prescriptionService)) {
-            $this->prescriptionService = new PrescriptionService();
-        }
+        $this->prescriptionService ??= new PrescriptionService();
         return $this->prescriptionService;
     }
 
@@ -580,9 +585,7 @@ class FhirMedicationRequestService extends FhirServiceBase implements IResourceU
 
     public function getFhirOrganizationService(): FhirOrganizationService
     {
-        if (!isset($this->fhirOrganizationService)) {
-            $this->fhirOrganizationService = new FhirOrganizationService();
-        }
+        $this->fhirOrganizationService ??= new FhirOrganizationService();
         return $this->fhirOrganizationService;
     }
 

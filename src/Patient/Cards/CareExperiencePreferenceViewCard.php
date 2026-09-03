@@ -6,7 +6,9 @@
  * @package   OpenEMR
  * @link      https://www.openemr.org
  * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @author    Michael A. Smith <michael@opencoreemr.com>
  * @copyright Copyright (c) 2025 Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -20,6 +22,7 @@ use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Patient\Summary\Card\CardModel;
 use OpenEMR\Events\Patient\Summary\Card\RenderEvent;
 use OpenEMR\Services\CareExperiencePreferenceService;
+use Symfony\Component\HttpFoundation\Request;
 
 class CareExperiencePreferenceViewCard extends CardModel
 {
@@ -36,7 +39,7 @@ class CareExperiencePreferenceViewCard extends CardModel
     /**
      * @param int $pid
      */
-    public function __construct(private $pid, array $opts = [])
+    public function __construct(private $pid, private readonly Request $request, array $opts = [])
     {
         $opts = $this->setupOpts($opts);
         parent::__construct($opts);
@@ -61,9 +64,15 @@ class CareExperiencePreferenceViewCard extends CardModel
                 'title' => xl('Care Experience Preferences'),
                 'id' => self::CARD_ID_EXPAND,
                 'btnLabel' => "Edit",
-                'btnLink' => "javascript:toggleEditMode(true);",
-                'linkMethod' => 'html',
-                'initiallyCollapsed' => $initiallyCollapsed ? true : false,
+                // card_base emits this as an inline `onclick`; a `javascript:`
+                // href would be stripped by |safe_href. The click itself is
+                // handled by the delegated `.js-card-toggle-edit` listener in
+                // the card template, which already calls preventDefault() —
+                // this only keeps the `#` href from jumping the page if that
+                // listener stops running.
+                'btnLink' => 'event.preventDefault();',
+                'linkMethod' => 'javascript',
+                'initiallyCollapsed' => $initiallyCollapsed,
                 'auth' => $authCheck
             ]
         ];
@@ -134,7 +143,7 @@ class CareExperiencePreferenceViewCard extends CardModel
             'pid'              => $this->pid,
             'auth'             => true,  // TODO ACL
             'can_write'        => true,  // TODO ACL
-            'webroot'          => OEGlobalsBag::getInstance()->get('webroot') ?? '',
+            'webroot'          => OEGlobalsBag::getInstance()->getKernel()->getWebRoot(),
             'csrf_token'       => CsrfUtils::collectCsrfToken(session: $session),
             'preferences'      => $preferences,
             'loinc_codes'      => $loincCodes,
@@ -188,31 +197,38 @@ class CareExperiencePreferenceViewCard extends CardModel
 
     private function handlePost(): void
     {
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+        $request = $this->request;
+
+        if ($request->getMethod() !== 'POST') {
             return;
         }
-        if (($_POST['pref_type'] ?? '') !== 'care_experience') {
+        if ($request->request->getString('pref_type') !== 'care_experience') {
             return;
         }
         CsrfUtils::checkCsrfInput(INPUT_POST, key: 'csrf_token', dieOnFail: true);
 
-        $action = $_POST['action'] ?? '';
-        if ($action === 'save') {
-            $id   = isset($_POST['id']) && $_POST['id'] !== '' ? (int)$_POST['id'] : null;
-            $data = $this->collectPost($_POST);  // note: returns patient_id
-            if ($id) {
-                $this->service->update($id, $data);
-                $this->flashMessage = xl('Preference updated');
-            } else {
-                $this->service->insert($data);   // ← was create()
-                $this->flashMessage = xl('Preference saved');
-            }
-        } elseif ($action === 'delete') {
-            $id = (int)($_POST['id'] ?? 0);
-            if ($id) {
-                $this->service->delete($id);     // method exists
-                $this->flashMessage = xl('Preference deleted');
-            }
+        switch ($request->request->getString('action')) {
+            case 'save':
+                $idInput = $request->request->getString('id');
+                $id = $idInput !== ''
+                    ? filter_var($idInput, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE)
+                    : null;
+                $data = $this->collectPost($request->request->all());
+                if ($id) {
+                    $this->service->update($id, $data);
+                    $this->flashMessage = xl('Preference updated');
+                } else {
+                    $this->service->insert($data);
+                    $this->flashMessage = xl('Preference saved');
+                }
+                break;
+            case 'delete':
+                $id = $request->request->getInt('id');
+                if ($id) {
+                    $this->service->delete($id);
+                    $this->flashMessage = xl('Preference deleted');
+                }
+                break;
         }
     }
 

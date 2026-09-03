@@ -176,15 +176,13 @@ class FHIRMolecularSequenceOuter extends FHIRBackboneElement implements \JsonSer
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<MolecularSequenceOuter xmlns="http://hl7.org/fhir"></MolecularSequenceOuter>');
-        }
+        $sxe ??= new \SimpleXMLElement('<MolecularSequenceOuter xmlns="http://hl7.org/fhir"></MolecularSequenceOuter>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->start)) {
             $this->start->xmlSerialize(true, $sxe->addChild('start'));

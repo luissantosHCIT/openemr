@@ -22,6 +22,8 @@ require_once("$srcdir/options.inc.php");
 
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Forms\FormActionBarSettings;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
@@ -36,6 +38,23 @@ if (!AclMain::aclCheckForm('fee_sheet')) { ?>
 }
 
 $session = SessionWrapperFactory::getInstance()->getActiveSession();
+
+// CSRF protection for every state-changing POST to this endpoint (saving the
+// fee sheet, the AJAX save/dx-update variants, and reopening a checked-out
+// visit).  The token is emitted as a hidden field in the fee sheet form below,
+// so the normal submit and the form-derived AJAX posts (jQuery serialize() and
+// FormData) all carry it.  Read-only refreshes (running_as_ajax without a save
+// flag) change nothing and are intentionally not gated.
+$postFieldPresent = static fn(string $name): bool => filter_input(INPUT_POST, $name) !== null;
+$isStateChangingPost = $postFieldPresent('bn_save')
+    || $postFieldPresent('bn_save_close')
+    || $postFieldPresent('bn_save_stay')
+    || $postFieldPresent('bn_reopen')
+    || $postFieldPresent('form_reopen')
+    || ($postFieldPresent('running_as_ajax') && $postFieldPresent('dx_update'));
+if ($isStateChangingPost) {
+    CsrfUtils::checkCsrfInput(INPUT_POST, $session, dieOnFail: true);
+}
 
 // Some table cells will not be displayed unless insurance billing is used.
 $usbillstyle = OEGlobalsBag::getInstance()->get('ippf_specific') ? " style='display:none'" : "";
@@ -56,7 +75,7 @@ $alertmsg = '';
 $tmp = sqlQuery("SELECT COUNT(*) AS count FROM list_options where list_id = 'pricelevel' AND activity = 1");
 $price_levels_are_used = $tmp['count'] > 1;
 // For revenue codes
-$institutional = OEGlobalsBag::getInstance()->getBoolean('ub04_support') ? true : false;
+$institutional = OEGlobalsBag::getInstance()->getBoolean('ub04_support');
 // Helper function for creating drop-lists.
 function endFSCategory(): void
 {
@@ -529,7 +548,7 @@ if (!$alertmsg && (!empty($_POST['bn_save']) || !empty($_POST['bn_save_close']))
 }
 
 // If Save or Save-and-Close was clicked, save the new and modified billing
-// lines; then if no error, redirect to $GLOBALS['form_exit_url'].
+// lines; then if no error, redirect to FormActionBarSettings::EXIT_URL.
 //
 if (!$alertmsg && (!empty($_POST['bn_save']) || !empty($_POST['bn_save_close']) || !empty($_POST['bn_save_stay']))) {
     $main_provid = (int) ($_POST['ProviderID'] ?? 0);
@@ -580,7 +599,7 @@ if (!$alertmsg && (!empty($_POST['bn_save']) || !empty($_POST['bn_save_close']) 
             if ($tmp_form_id) {
                 // Contraceptive method does not match existing contraception data for this visit,
                 // or there is no such data.  Open a new or existing Contraception Summary form.
-                $tmpurl = OEGlobalsBag::getInstance()->get('rootdir') . "/patient_file/encounter/view_form.php" .
+                $tmpurl = OEGlobalsBag::getInstance()->getKernel()->getRootDir() . "/patient_file/encounter/view_form.php" .
                     "?formname=LBFcontra&id=" . ($tmp_form_id < 0 ? 0 : urlencode((string) $tmp_form_id));
                 if (!empty($_POST['bn_save_close']) && !empty($_POST['form_has_charges'])) {
                     $tmpurl .= "&from_save_and_checkout=1";
@@ -594,7 +613,7 @@ if (!$alertmsg && (!empty($_POST['bn_save']) || !empty($_POST['bn_save_close']) 
         if ($rapid_data_entry || (!empty($_POST['bn_save_close']) && !empty($_POST['form_has_charges']))) {
             // In rapid data entry mode or if "Save and Checkout" was clicked,
             // we go directly to the Checkout page.
-            formJump(OEGlobalsBag::getInstance()->get('rootdir') . "/patient_file/pos_checkout.php?framed=1" .
+            formJump(OEGlobalsBag::getInstance()->getKernel()->getRootDir() . "/patient_file/pos_checkout.php?framed=1" .
             "&ptid=" . urlencode((string) $fs->pid) . "&enid=" . urlencode((string) $fs->encounter) . "&rde=" . urlencode((string) $rapid_data_entry));
         } else {
             // Otherwise return to the normal encounter summary frameset.
@@ -697,7 +716,7 @@ function reinitForm(){
                 response( cache[ term ] );
                 return;
             }
-            $.getJSON( "<?php echo OEGlobalsBag::getInstance()->get('web_root') ?>/interface/billing/ub04_helpers.php", request, function( data, status, xhr ) {
+            $.getJSON( "<?php echo OEGlobalsBag::getInstance()->getWebRoot() ?>/interface/billing/ub04_helpers.php", request, function( data, status, xhr ) {
                 cache[ term ] = data;
                 response( data );
             })
@@ -1004,6 +1023,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                 <form method="post" name="fee_sheet_form" id="fee_sheet_form" action="<?php echo $rootdir; ?>/forms/fee_sheet/new.php?<?php
                 echo "rde=" . attr_url($rapid_data_entry) . "&addmore=" . attr_url($add_more_items); ?>"
                 onsubmit="return validate(this)">
+                    <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken($session)); ?>" />
                     <input type='hidden' name='newcodes' value='' />
                     <?php
                     $isBilled = !$add_more_items && BillingUtilities::isEncounterBilled($fs->pid, $fs->encounter);
@@ -1762,7 +1782,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                         <?php echo xlt('Add More Items'); ?>
                                     </button>
                                 <?php } // end billed ?>
-                                    <button type='button' class='btn btn-secondary btn-cancel' onclick="top.restoreSession();location='<?php echo OEGlobalsBag::getInstance()->get('form_exit_url'); ?>'">
+                                    <button type='button' class='btn btn-secondary btn-cancel' onclick="top.restoreSession();location='<?php echo FormActionBarSettings::EXIT_URL; ?>'">
                                     <?php echo xlt('Cancel');?></button>
                                     <input type='hidden' name='form_has_charges' value='<?php echo $fs->hasCharges ? 1 : 0; ?>' />
                                     <input type='hidden' name='form_checksum' value='<?php echo attr($current_checksum); ?>' />

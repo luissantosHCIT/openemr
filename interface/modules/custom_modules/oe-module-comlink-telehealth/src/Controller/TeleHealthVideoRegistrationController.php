@@ -59,9 +59,7 @@ class TeleHealthVideoRegistrationController
 
     public function getUserRepository()
     {
-        if (!isset($this->userRepository)) {
-            $this->userRepository = new TeleHealthUserRepository();
-        }
+        $this->userRepository ??= new TeleHealthUserRepository();
         return $this->userRepository;
     }
 
@@ -106,6 +104,7 @@ class TeleHealthVideoRegistrationController
 
     public function onUserCreatedEvent(UserCreatedEvent $event)
     {
+        $user = [];
         try {
             $user = $event->getUserData();
             $userService = new UserService();
@@ -138,6 +137,7 @@ class TeleHealthVideoRegistrationController
 
     public function onUserUpdatedEvent(UserUpdatedEvent $event)
     {
+        $user = [];
         try {
             $user = $event->getNewUserData();
             $userService = new UserService();

@@ -16,7 +16,7 @@
  */
 
 require_once("../globals.php");
-require_once("$srcdir/options.inc.php");
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . "/options.inc.php");
 
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
@@ -225,12 +225,12 @@ while ($row = sqlFetchArray($res)) {
 </div>
 
 <?php if ($popup) { ?>
-    <?php Header::setupAssets('topdialog'); ?>
+    <?php echo Header::setupAssets(['topdialog']); ?>
 <?php } ?>
 <script>
 
 <?php if ($popup) {
-    require(OEGlobalsBag::getInstance()->get('srcdir') . "/restoreSession.php");
+    require(OEGlobalsBag::getInstance()->getSrcDir() . "/restoreSession.php");
 } ?>
 
 // Callback from popups to refresh this display.

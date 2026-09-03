@@ -12,6 +12,8 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+// Set $sessionAllowWrite to true since the new patient pid is written to the session via setpid() below.
+$sessionAllowWrite = true;
 require_once("../globals.php");
 
 use OpenEMR\BC\ServiceContainer;
@@ -37,7 +39,6 @@ if (!empty($_POST["form_pubpid"])) {
     }
 }
 
-require_once("$srcdir/pid.inc.php");
 require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/options.inc.php");
 

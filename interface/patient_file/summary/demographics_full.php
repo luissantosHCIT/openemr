@@ -18,22 +18,26 @@
  */
 
 require_once("../../globals.php");
-require_once("$srcdir/options.inc.php");
-require_once("$srcdir/validation/LBF_Validation.php");
-require_once("$srcdir/patientvalidation.inc.php");
-require_once("$srcdir/pid.inc.php");
-require_once("$srcdir/patient.inc.php");
+$srcdir = \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir();
+$session = \OpenEMR\Common\Session\SessionWrapperFactory::getInstance()->getActiveSession();
+require_once($srcdir . "/options.inc.php");
+require_once($srcdir . "/validation/LBF_Validation.php");
+require_once($srcdir . "/patientvalidation.inc.php");
+require_once($srcdir . "/patient.inc.php");
 
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Forms\FormActionBarSettings;
-use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\PatientDemographics\UpdateEvent;
+use OpenEMR\Services\PatientService;
 
-$session = SessionWrapperFactory::getInstance()->getActiveSession();
+
+/** @var string $date_init */
+$date_init = OEGlobalsBag::getInstance()->get('date_init', '');
+$condition_str = '';
 
 // Session pid must be right or bad things can happen when demographics are saved!
 //
@@ -79,7 +83,7 @@ $CPR = 4; // cells per row
     ?>
     <title><?php echo xlt('Edit Current Patient'); ?></title>
 
-    <?php include_once(OEGlobalsBag::getInstance()->get('srcdir') . "/options.js.php"); ?>
+    <?php include_once($srcdir . "/options.js.php"); ?>
 
     <script>
 
@@ -95,7 +99,7 @@ $CPR = 4; // cells per row
                 theme: "bootstrap4",
                 dropdownAutoWidth: true,
                 width: 'resolve',
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/select2.js.php'); ?>
+                <?php require($srcdir . '/js/xl/select2.js.php'); ?>
             }).on("select2:unselecting", function (e) {
                 $(this).data('state', 'unselected');
                 var data = e.params.args.data;
@@ -142,7 +146,7 @@ $CPR = 4; // cells per row
                 theme: "bootstrap4",
                 dropdownAutoWidth: true,
                 width: 'resolve',
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/select2.js.php'); ?>
+                <?php require($srcdir . '/js/xl/select2.js.php'); ?>
             });
             if (typeof error !== 'undefined') {
                 if (error) {
@@ -156,7 +160,7 @@ $CPR = 4; // cells per row
                 <?php $datetimepicker_formatInput = true; ?>
                 <?php $datetimepicker_minDate = false; ?>
                 <?php $datetimepicker_maxDate = false; ?>
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php require($srcdir . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
             $('.datetimepicker').datetimepicker({
@@ -165,7 +169,7 @@ $CPR = 4; // cells per row
                 <?php $datetimepicker_formatInput = true; ?>
                 <?php $datetimepicker_minDate = false; ?>
                 <?php $datetimepicker_maxDate = false; ?>
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php require($srcdir . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
             $('.datepicker-past').datetimepicker({
@@ -174,7 +178,7 @@ $CPR = 4; // cells per row
                 <?php $datetimepicker_formatInput = true; ?>
                 <?php $datetimepicker_minDate = false; ?>
                 <?php $datetimepicker_maxDate = '+1970/01/01'; ?>
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php require($srcdir . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
             $('.datetimepicker-past').datetimepicker({
@@ -183,7 +187,7 @@ $CPR = 4; // cells per row
                 <?php $datetimepicker_formatInput = true; ?>
                 <?php $datetimepicker_minDate = false; ?>
                 <?php $datetimepicker_maxDate = '+1970/01/01'; ?>
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php require($srcdir . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
             $('.datepicker-future').datetimepicker({
@@ -192,7 +196,7 @@ $CPR = 4; // cells per row
                 <?php $datetimepicker_formatInput = true; ?>
                 <?php $datetimepicker_minDate = '-1970/01/01'; ?>
                 <?php $datetimepicker_maxDate = false; ?>
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php require($srcdir . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
             $('.datetimepicker-future').datetimepicker({
@@ -201,7 +205,7 @@ $CPR = 4; // cells per row
                 <?php $datetimepicker_formatInput = true; ?>
                 <?php $datetimepicker_minDate = '-1970/01/01'; ?>
                 <?php $datetimepicker_maxDate = false; ?>
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php require($srcdir . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
 
@@ -263,17 +267,41 @@ $CPR = 4; // cells per row
             }
         }
 
+        // Map USPS verify params to candidate layout field ids, in priority order.
+        // Sites with customized layouts can be accommodated by adding ids here.
+        const addressVerifyFields = {
+            address1: ['form_street'],
+            address2: ['form_street_line_2'],
+            city:     ['form_city'],
+            state:    ['form_state'],
+            postal:   ['form_postal_code']
+        };
+
+        function resolveAddressField(candidates) {
+            const f = document.demographics_form;
+            for (const name of candidates) {
+                if (f[name]) {
+                    return f[name];
+                }
+            }
+            return null;
+        }
+
         function address_verify() {
             top.restoreSession();
-            const f = document.demographics_form;
+            const val = key => {
+                const el = resolveAddressField(addressVerifyFields[key]);
+                return el ? el.value : '';
+            };
+            const postal = val('postal').replace(/\D/g, '');
 
             const params = new URLSearchParams({
-                address1: f.form_street.value,
-                address2: f.form_street_line_2.value,
-                city: f.form_city.value,
-                state: f.form_state.value,
-                zip4: f.form_postal_code.value.substring(5, 9),
-                zip5: f.form_postal_code.value.substring(0, 5)
+                address1: val('address1'),
+                address2: val('address2'),
+                city: val('city'),
+                state: val('state'),
+                zip4: postal.substring(5, 9),
+                zip5: postal.substring(0, 5)
             });
 
             dlgopen('../../practice/address_verify.php?' + params,
@@ -503,14 +531,14 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
         <?php }?>
 
         <?php if ($set_pid) { ?>
-        parent.left_nav.setPatient(<?php echo js_escape($result['fname'] . " " . $result['lname']) . "," . js_escape($pid) . "," . js_escape($result['pubpid']) . ",''," . js_escape(" " . xl('DOB') . ": " . oeFormatShortDate($result['DOB_YMD']) . " " . xl('Age') . ": " . getPatientAgeDisplay($result['DOB_YMD'])); ?>);
+        parent.left_nav.setPatient(<?php echo js_escape($result['fname'] . " " . $result['lname']) . "," . js_escape($pid) . "," . js_escape($result['pubpid']) . ",''," . js_escape(" " . xl('DOB') . ": " . oeFormatShortDate($result['DOB_YMD']) . " " . xl('Age') . ": " . getPatientAgeDisplay($result['DOB_YMD'])) . "," . ((new PatientService())->hasPictureForPid($pid) ? 'true' : 'false'); ?>);
         <?php } ?>
 
         <?php echo $date_init; ?>
     </script>
 
     <!-- include support for the list-add selectbox feature -->
-    <?php require OEGlobalsBag::getInstance()->get('fileroot') . "/library/options_listadd.inc.php"; ?>
+    <?php require OEGlobalsBag::getInstance()->getProjectDir() . "/library/options_listadd.inc.php"; ?>
 
     <?php /*Include the validation script and rules for this form*/
     $form_id = "DEM";
@@ -518,7 +546,7 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
     $use_validate_js = OEGlobalsBag::getInstance()->getBoolean('new_validate');
 
     ?>
-    <?php include_once("$srcdir/validation/validation_script.js.php"); ?>
+    <?php include_once($srcdir . "/validation/validation_script.js.php"); ?>
 
 
     <script>
@@ -534,7 +562,7 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
 
         // Use hook to open the controller and get the new patient validation .
         // when no params are sent this window will be closed from the zend controller.
-        var url = '<?php echo OEGlobalsBag::getInstance()->get('web_root') . "/interface/modules/zend_modules/public/patientvalidation";?>';
+        var url = '<?php echo OEGlobalsBag::getInstance()->getWebRoot() . "/interface/modules/zend_modules/public/patientvalidation";?>';
         $("#submit_btn").attr("name", "btnSubmit");
         $("#submit_btn").attr("id", "btnSubmit");
         $("#btnSubmit").click(function (event) {
@@ -609,11 +637,15 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
                 theme: "bootstrap4",
                 dropdownAutoWidth: true,
                 width: 'resolve',
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/select2.js.php'); ?>
+                <?php require($srcdir . '/js/xl/select2.js.php'); ?>
             });
+
             <?php if (OEGlobalsBag::getInstance()->getString('usps_apiv3_client_id')) { ?>
-            $("#value_id_text_postal_code").append(
-                "<input type='button' class='btn btn-sm btn-secondary mb-1' onclick='address_verify()' value='<?php echo xla('Verify Address') ?>' />");
+            if (['address1', 'city', 'state', 'postal'].every(
+                    k => resolveAddressField(addressVerifyFields[k]))) {
+                $("#value_id_text_postal_code").append(
+                    "<input type='button' class='btn btn-sm btn-secondary mb-1' onclick='address_verify()' value='<?php echo xla('Verify Address') ?>' />");
+            }
             <?php } ?>
         })
     </script>

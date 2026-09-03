@@ -17,20 +17,20 @@
  */
 
 require_once("../globals.php");
-require_once("$srcdir/patient.inc.php");
-require_once("$srcdir/options.inc.php");
+$srcdir = \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir();
+$session = \OpenEMR\Common\Session\SessionWrapperFactory::getInstance()->getActiveSession();
+require_once($srcdir . "/patient.inc.php");
+require_once($srcdir . "/options.inc.php");
 
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
-use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
 
 $first_time = true;
 $group = 1;
 
-$session = SessionWrapperFactory::getInstance()->getActiveSession();
 
 /**
  * @param bool $first_time
@@ -289,18 +289,18 @@ if ($is_csv) {
 } // end HTML header
 
 if ($is_csv) {
-    echo csvEscape(xl('Group')) . ',';
-    echo csvEscape(xl('Score')) . ',';
-    echo csvEscape(xl('PID')) . ',';
-    echo csvEscape(xl('Public')) . ',';
-    echo csvEscape(xl('Scope')) . ',';
-    echo csvEscape(xl('Name')) . ',';
-    echo csvEscape(xl('DOB')) . ',';
-    echo csvEscape(xl('Gender')) . ',';
-    echo csvEscape(xl('Email')) . ',';
-    echo csvEscape(xl('Telephone')) . ',';
-    echo csvEscape(xl('Registered')) . ',';
-    echo csvEscape(xl('Address')) . "\n";
+    echo xlc('Group') . ',';
+    echo xlc('Score') . ',';
+    echo xlc('PID') . ',';
+    echo xlc('Public') . ',';
+    echo xlc('Scope') . ',';
+    echo xlc('Name') . ',';
+    echo xlc('DOB') . ',';
+    echo xlc('Gender') . ',';
+    echo xlc('Email') . ',';
+    echo xlc('Telephone') . ',';
+    echo xlc('Registered') . ',';
+    echo xlc('Address') . "\n";
 } else {
     ?>
             <table id='mymaintable' class='table table-sm table-bordered table-hover w-100 table-light'>

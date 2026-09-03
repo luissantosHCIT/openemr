@@ -10,7 +10,6 @@
 
 //INCLUDES, DO ANY ACTIONS, THEN GET OUR DATA
 require_once("../globals.php");
-require_once("$srcdir/registry.inc.php");
 
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclExtended;
@@ -122,7 +121,7 @@ $bigdata = getRegistered("%") or $bigdata = false;
                                     "select priority, category, nickname, aco_spec from registry where id = ?",
                                     [$registry['id']]
                                 );
-                                $patientPortalCompliant = file_exists(OEGlobalsBag::getInstance()->get('srcdir') . "/../interface/forms/" . $registry['directory'] . "/patient_portal.php");
+                                $patientPortalCompliant = file_exists(OEGlobalsBag::getInstance()->getSrcDir() . "/../interface/forms/" . $registry['directory'] . "/patient_portal.php");
                                 ?>
                             <tr>
                                 <td>
@@ -220,9 +219,9 @@ $bigdata = getRegistered("%") or $bigdata = false;
                             <tr>
                                 <td colspan="2">
                                     <?php
-                                    $form_title_file = @file(OEGlobalsBag::getInstance()->get('srcdir') . "/../interface/forms/$fname/info.txt");
+                                    $form_title_file = @file(OEGlobalsBag::getInstance()->getSrcDir() . "/../interface/forms/$fname/info.txt");
                                     $form_title = $form_title_file ? $form_title_file[0] : $fname;
-                                    $patientPortalCompliant = file_exists(OEGlobalsBag::getInstance()->get('srcdir') . "/../interface/forms/" . $fname . "/patient_portal.php");
+                                    $patientPortalCompliant = file_exists(OEGlobalsBag::getInstance()->getSrcDir() . "/../interface/forms/" . $fname . "/patient_portal.php");
                                     ?>
                                     <?php
                                     echo text(xl_form_title($form_title));

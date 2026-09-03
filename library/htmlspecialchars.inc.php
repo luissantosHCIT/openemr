@@ -10,6 +10,31 @@
  * @copyright Copyright (c) 2011 Boyd Stephen Smith Jr.
  * @copyright Copyright (c) 2018 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ *
+ * Design note for the escape helpers below (attr, text, js_escape, attr_js,
+ * attr_url, js_url, xmlEscape, errorLogEscape, csvEscape, ...):
+ *
+ *   The `@param string` annotations are deliberately NARROW. They exist so
+ *   PHPStan tells you when an escape is being applied to something that
+ *   does NOT need escaping. An int, float, bool, or already-sanitized
+ *   primitive carries no characters that any of these functions would
+ *   modify, so wrapping it is dead work that hides intent at the call
+ *   site.
+ *
+ *   When PHPStan reports "expects string, int given" (or similar) at a
+ *   call site, treat it as a signal — not noise to silence. The right
+ *   responses, in order of preference:
+ *
+ *     1. Drop the escape entirely. If the value is already a safe
+ *        primitive (e.g., `echo (int) $pid`), emit it directly.
+ *     2. If the value is a true union (e.g., `int|string` from a row
+ *        cell), narrow it explicitly at the call site:
+ *        `attr((string) $cell)`. The cast is harmless and makes the
+ *        intent clear.
+ *
+ *   Do NOT widen these `@param` types to `mixed`/`scalar` to make the
+ *   warnings disappear. That throws away the signal everywhere else and
+ *   re-hides the dead-escape sites this file is trying to surface.
  */
 
 /**
@@ -159,7 +184,7 @@ function csvEscape($text): string
  */
 function xmlEscape($text): string
 {
-    return htmlspecialchars(($text ?? ''), ENT_XML1 | ENT_QUOTES);
+    return htmlspecialchars($text ?? '', ENT_XML1 | ENT_QUOTES);
 }
 
 /**
@@ -181,11 +206,11 @@ function javascriptStringRemove(?string $text): string
  */
 function javascriptStringCheck(?string $text): bool
 {
-    if (stripos($text ?? '', 'javascript') === false) {
-        return false;
-    } else {
-        return true;
-    }
+    // Must be case-insensitive: browsers execute mixed-case javascript: URIs,
+    // and javascriptStringRemove() strips 'javascript' case-insensitively, so a
+    // case-sensitive check here would abort the recursion early and leave an
+    // executable payload (e.g. 'javasJAVASCRIPTcript' -> 'javascript').
+    return stripos($text ?? '', 'javascript') !== false;
 }
 
 /**
@@ -208,7 +233,7 @@ function javascriptStringCheck(?string $text): bool
  */
 function text($text): string
 {
-    return htmlspecialchars(($text ?? ''), ENT_NOQUOTES);
+    return htmlspecialchars($text ?? '', ENT_NOQUOTES);
 }
 
 /**
@@ -265,7 +290,7 @@ function textArray(array $arr, $depth = 0)
  */
 function attr($text): string
 {
-    return htmlspecialchars(($text ?? ''), ENT_QUOTES);
+    return htmlspecialchars($text ?? '', ENT_QUOTES);
 }
 
 /**
@@ -282,11 +307,8 @@ function attr($text): string
  */
 function hsc_private_xl_or_warn(?string $key): string
 {
-    if ($key === null) {
-        return '';
-    }
     // @phpstan-ignore argument.type (intentional pass-through wrapper for translation)
-    return xl($key);
+    return $key === null ? '' : xl($key);
 }
 
 /**
@@ -331,4 +353,15 @@ function xlj($key)
 function xlx($key)
 {
     return xmlEscape(hsc_private_xl_or_warn($key));
+}
+
+/**
+ * Translate via xl() and then escape via csvEscape() for use in XML contexts.
+ *
+ * @param literal-string $key The string to translate and escape.
+ * @return string The translated string, escaped for CSV contexts.
+ */
+function xlc($key)
+{
+    return csvEscape(hsc_private_xl_or_warn($key));
 }

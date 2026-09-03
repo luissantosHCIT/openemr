@@ -49,7 +49,7 @@ class ConnectionSetting
     /**
      * Constructor
      */
-    function __construct($connection_code = "")
+    public function __construct($connection_code = "")
     {
         if ($connection_code != "") {
             $this->Unserialize($connection_code);
@@ -59,7 +59,7 @@ class ConnectionSetting
     /**
      * Returns an DSN array compatible with PEAR::DB
      */
-    function GetDSN()
+    public function GetDSN()
     {
         return  [
                 'phptype' => $this->Type,
@@ -73,7 +73,7 @@ class ConnectionSetting
     /**
      * Returns an options array compatible with PEAR::DB
      */
-    function GetOptions()
+    public function GetOptions()
     {
         return  [
                 'debug' => 2
@@ -85,7 +85,7 @@ class ConnectionSetting
     /**
      * Serialize to string
      */
-    function Serialize()
+    public function Serialize()
     {
         return base64_encode(serialize($this));
     }
@@ -93,10 +93,14 @@ class ConnectionSetting
     /**
      * Populate info from serialized string
      */
-    function Unserialize(&$serialized)
+    public function Unserialize(&$serialized)
     {
         // load the util from the serialized code
-        $tmp = unserialize(base64_decode((string) $serialized));
+        $tmp = unserialize(base64_decode((string) $serialized), ['allowed_classes' => [self::class]]);
+        if (!($tmp instanceof self)) {
+            return;
+        }
+
         $this->Type = $tmp->Type;
         $this->Username = $tmp->Username;
         $this->Password = $tmp->Password;

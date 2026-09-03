@@ -16,8 +16,8 @@
  */
 
 require_once("../globals.php");
-require_once "$srcdir/options.inc.php";
-require_once "$srcdir/appointments.inc.php";
+require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . "/options.inc.php";
+require_once \OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . "/appointments.inc.php";
 
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
@@ -79,7 +79,7 @@ $selectedProvider = $_POST['form_provider'] ?? "";  // provider filter
                     <?php $datetimepicker_timepicker = false; ?>
                     <?php $datetimepicker_showseconds = false; ?>
                     <?php $datetimepicker_formatInput = true; ?>
-                    <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                    <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                     <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
                 });
             });
@@ -241,23 +241,13 @@ $selectedProvider = $_POST['form_provider'] ?? "";  // provider filter
                 $facility = $appointment['name'];
                 $providerName = $appointment['ufname'] . ' ' . $appointment['ulname'];
 
-                // initialize each level of the data structure if it doesn't already exist
-                if (!isset($totalAppointment[$eventDate])) {
-                    $totalAppointment[$eventDate] = [];
-                }
+                $totalAppointment[$eventDate] ??= [];
 
-                if (!isset($totalAppointment[$eventDate][$facility])) {
-                    $totalAppointment[$eventDate][$facility] = [];
-                }
+                $totalAppointment[$eventDate][$facility] ??= [];
 
-                if (!isset($totalAppointment[$eventDate][$facility][$providerName])) {
-                    $totalAppointment[$eventDate][$facility][$providerName] = [];
-                }
+                $totalAppointment[$eventDate][$facility][$providerName] ??= [];
 
-                // initialize the number of appointment to 0
-                if (!isset($totalAppointment[$eventDate][$facility][$providerName]['appointments'])) {
-                    $totalAppointment[$eventDate][$facility][$providerName]['appointments'] = 0;
-                }
+                $totalAppointment[$eventDate][$facility][$providerName]['appointments'] ??= 0;
 
                 // increment the number of appointments
                 $totalAppointment[$eventDate][$facility][$providerName]['appointments']++;
@@ -319,6 +309,7 @@ $selectedProvider = $_POST['form_provider'] ?? "";  // provider filter
 
 
         while ($totalPaidRecord = sqlFetchArray($totalPaidAmountSql)) {
+            $totalPaid[$totalPaidRecord['Date']][$totalPaidRecord['facilityName']][$totalPaidRecord['provider_name']]['paidAmount'] ??= 0;
             $totalPaid[$totalPaidRecord['Date']][$totalPaidRecord['facilityName']][$totalPaidRecord['provider_name']]['paidAmount'] += $totalPaidRecord['totalPaidAmount'];
         }
 
@@ -367,7 +358,7 @@ $selectedProvider = $_POST['form_provider'] ?? "";  // provider filter
                                         <td>
                                             <?php
                                             if (isset($information['payments']) || isset($information['paidAmount'])) {
-                                                $dueAmount = number_format(floatval(str_replace(",", "", $information['payments'])) - floatval(str_replace(",", "", ($information['paidAmount'] ?? null))), 2);
+                                                $dueAmount = number_format(floatval(str_replace(",", "", ($information['payments'] ?? ''))) - floatval(str_replace(",", "", ($information['paidAmount'] ?? ''))), 2);
                                             } else {
                                                 $dueAmount = number_format(0, 2);
                                             }

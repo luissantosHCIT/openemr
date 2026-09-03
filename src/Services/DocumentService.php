@@ -46,7 +46,7 @@ class DocumentService extends BaseService
             $queryParams['patient_id'] = $pid;
         }
         $query = http_build_query($queryParams);
-        return OEGlobalsBag::getInstance()->get('web_root') . '/controller.php?' . $query;
+        return OEGlobalsBag::getInstance()->getKernel()->getWebRoot() . '/controller.php?' . $query;
     }
 
     public function isValidPath($path)
@@ -124,7 +124,7 @@ class DocumentService extends BaseService
     /**
      * @param array{tmp_name: string, name: string} $fileData
      */
-    public function insertAtPath($pid, $path, $fileData, $eid)
+    public function insertAtPath($pid, $path, $fileData, $eid): bool
     {
         // Ensure filetype is allowed
         if (OEGlobalsBag::getInstance()->getBoolean('secure_upload') && !isWhiteFile($fileData["tmp_name"])) {

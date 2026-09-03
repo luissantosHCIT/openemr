@@ -6,7 +6,9 @@
  *
  * @author    Jerry Padgett <sjpadgett@gmail.com>
  * @author    Stephen Nielson <snielson@discoverandchange.com>
+ * @author    Michael A. Smith <michael@opencoreemr.com>
  * @copyright Copyright (c) 2025 Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -23,6 +25,7 @@ use OpenEMR\Services\CareTeamService;
 use OpenEMR\Services\ContactRelationService;
 use OpenEMR\Services\ContactService;
 use OpenEMR\Services\ListService;
+use Symfony\Component\HttpFoundation\Request;
 
 class CareTeamViewCard extends CardModel
 {
@@ -37,7 +40,7 @@ class CareTeamViewCard extends CardModel
 
     private ListService $listService;
 
-    public function __construct(private $pid, array $opts = [])
+    public function __construct(private $pid, private readonly Request $request, array $opts = [])
     {
         $opts = $this->setupOpts($opts);
         parent::__construct($opts);
@@ -48,9 +51,7 @@ class CareTeamViewCard extends CardModel
 
     public function getListService(): ListService
     {
-        if (!isset($this->listService)) {
-            $this->listService = new ListService();
-        }
+        $this->listService ??= new ListService();
         return $this->listService;
     }
     public function setListService(ListService $service): void
@@ -60,9 +61,7 @@ class CareTeamViewCard extends CardModel
 
     public function getCareTeamService(): CareTeamService
     {
-        if (!isset($this->careTeamService)) {
-            $this->careTeamService = new CareTeamService();
-        }
+        $this->careTeamService ??= new CareTeamService();
         return $this->careTeamService;
     }
 
@@ -98,9 +97,14 @@ class CareTeamViewCard extends CardModel
                 'id' => self::CARD_ID_EXPAND,
                 'btnLabel' => "Edit",
                 'btnClass' => 'btn-edit-care-team',
-                'btnLink' => "javascript:void(0);",
-                'linkMethod' => 'html',
-                'initiallyCollapsed' => $initiallyCollapsed ? true : false,
+                // card_base emits this as an inline `onclick`; a `javascript:`
+                // href would be stripped by |safe_href. The click itself is
+                // handled by the `.btn-edit-care-team` listener in the card
+                // template, which does not call preventDefault() — so this
+                // must, or the `#` href jumps the page to the top.
+                'btnLink' => 'event.preventDefault();',
+                'linkMethod' => 'javascript',
+                'initiallyCollapsed' => $initiallyCollapsed,
                 'auth' => $authCheck
             ]
         ];
@@ -122,21 +126,27 @@ class CareTeamViewCard extends CardModel
 
     private function handleFormSubmission()
     {
-        if (($_POST['save_care_team'] ?? '') === 'true') {
-            CsrfUtils::checkCsrfInput(INPUT_POST, dieOnFail: true);
-
-            $teamId = ValidationUtils::validateInt($_POST['team_id']);
-            $teamId = $teamId === false ? null : $teamId;
-            $teamName = trim($_POST['team_name'] ?? '');
-            $team = $_POST['team'] ?? [];
-            $teamStatus = trim($_POST['team_status'] ?? 'active'); // AI-generated addition
-
-            if (!$this->pid) {
-                die(xlt("Invalid request."));
-            }
-
-            $this->getCareTeamService()->saveCareTeam($this->pid, $teamId, $teamName, $team, $teamStatus);
+        $request = $this->request->request;
+        if ($request->getString('save_care_team') !== 'true') {
+            return;
         }
+        CsrfUtils::checkCsrfInput(INPUT_POST, dieOnFail: true);
+
+        $teamId = ValidationUtils::validateInt($request->getString('team_id'));
+        $teamId = $teamId === false ? null : $teamId;
+        $teamName = trim($request->getString('team_name'));
+        // `team` is the only field that legitimately arrives as an array
+        // (per-row metadata for each team member). Fall through to
+        // ->all() for that one field.
+        $allPost = $request->all();
+        $team = is_array($allPost['team'] ?? null) ? $allPost['team'] : [];
+        $teamStatus = trim($request->getString('team_status', 'active'));
+
+        if (!$this->pid) {
+            die(xlt("Invalid request."));
+        }
+
+        $this->getCareTeamService()->saveCareTeam($this->pid, $teamId, $teamName, $team, $teamStatus);
     }
 
     private function getUserCardSetting($settingName)

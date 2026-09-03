@@ -15,9 +15,9 @@ namespace OpenEMR\Services\Cda;
 use CURLFile;
 use DOMDocument;
 use Exception;
+use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Logging\SystemLoggerAwareTrait;
 use OpenEMR\Common\System\System;
-use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\OEGlobalsBag;
 
 class CdaValidateDocuments
@@ -113,7 +113,7 @@ class CdaValidateDocuments
         $serverActive = @socket_connect($socket, "localhost", $port);
 
         if ($serverActive === false) {
-            $path = OEGlobalsBag::getInstance()->get('fileroot') . "/ccdaservice/node_modules/oe-schematron-service";
+            $path = OEGlobalsBag::getInstance()->getKernel()->getProjectDir() . "/ccdaservice/node_modules/oe-schematron-service";
             if (IS_WINDOWS) {
                 $redirect_errors = " > ";
                 $redirect_errors .= $system->escapeshellcmd(OEGlobalsBag::getInstance()->getString('temporary_files_dir') . "/schematron_server.log") . " 2>&1";
@@ -175,8 +175,6 @@ class CdaValidateDocuments
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $xml);
         $response = curl_exec($ch);
-        curl_close($ch);
-
         $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         if ($status == '200') {
             $reply = json_decode($response, true);
@@ -237,7 +235,6 @@ class CdaValidateDocuments
                     xlt('Request Status') . ':' . $status
             ];
         }
-        curl_close($ch);
         if ($status == '200') {
             $reply = json_decode($response, true);
         }
@@ -331,7 +328,7 @@ class CdaValidateDocuments
         $errors = $this->fetchValidationLog($amid);
 
         if (count($errors ?? [])) {
-            $twig = (new TwigContainer(null, OEGlobalsBag::getInstance()->getKernel()))->getTwig();
+            $twig = ServiceContainer::getTwig();
             $html = $twig->render("carecoordination/cda/cda-validate-results.html.twig", ['validation' => $errors]);
         } else {
             $html = xlt("No Errors or Validation service is disabled in Admin Config Connectors 'Disable All CDA Validation Reporting'.");

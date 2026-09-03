@@ -409,15 +409,13 @@ class FHIRNutritionOrderEnteralFormula extends FHIRBackboneElement implements \J
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<NutritionOrderEnteralFormula xmlns="http://hl7.org/fhir"></NutritionOrderEnteralFormula>');
-        }
+        $sxe ??= new \SimpleXMLElement('<NutritionOrderEnteralFormula xmlns="http://hl7.org/fhir"></NutritionOrderEnteralFormula>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->baseFormulaType)) {
             $this->baseFormulaType->xmlSerialize(true, $sxe->addChild('baseFormulaType'));

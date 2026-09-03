@@ -399,15 +399,13 @@ class FHIRMolecularSequenceRoc extends FHIRBackboneElement implements \JsonSeria
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<MolecularSequenceRoc xmlns="http://hl7.org/fhir"></MolecularSequenceRoc>');
-        }
+        $sxe ??= new \SimpleXMLElement('<MolecularSequenceRoc xmlns="http://hl7.org/fhir"></MolecularSequenceRoc>');
         parent::xmlSerialize(true, $sxe);
         if (0 < count($this->score)) {
             foreach ($this->score as $score) {

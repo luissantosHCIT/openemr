@@ -532,15 +532,13 @@ class FHIRImagingStudySeries extends FHIRBackboneElement implements \JsonSeriali
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ImagingStudySeries xmlns="http://hl7.org/fhir"></ImagingStudySeries>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ImagingStudySeries xmlns="http://hl7.org/fhir"></ImagingStudySeries>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->uid)) {
             $this->uid->xmlSerialize(true, $sxe->addChild('uid'));

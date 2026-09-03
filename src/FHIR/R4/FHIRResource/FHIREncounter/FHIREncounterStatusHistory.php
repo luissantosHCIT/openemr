@@ -176,15 +176,13 @@ class FHIREncounterStatusHistory extends FHIRBackboneElement implements \JsonSer
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<EncounterStatusHistory xmlns="http://hl7.org/fhir"></EncounterStatusHistory>');
-        }
+        $sxe ??= new \SimpleXMLElement('<EncounterStatusHistory xmlns="http://hl7.org/fhir"></EncounterStatusHistory>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->status)) {
             $this->status->xmlSerialize(true, $sxe->addChild('status'));

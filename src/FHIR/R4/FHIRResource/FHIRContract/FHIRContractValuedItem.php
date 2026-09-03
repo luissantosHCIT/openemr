@@ -604,15 +604,13 @@ class FHIRContractValuedItem extends FHIRBackboneElement implements \JsonSeriali
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ContractValuedItem xmlns="http://hl7.org/fhir"></ContractValuedItem>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ContractValuedItem xmlns="http://hl7.org/fhir"></ContractValuedItem>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->entityCodeableConcept)) {
             $this->entityCodeableConcept->xmlSerialize(true, $sxe->addChild('entityCodeableConcept'));

@@ -177,15 +177,13 @@ class FHIRDataRequirementSort extends FHIRElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<DataRequirementSort xmlns="http://hl7.org/fhir"></DataRequirementSort>');
-        }
+        $sxe ??= new \SimpleXMLElement('<DataRequirementSort xmlns="http://hl7.org/fhir"></DataRequirementSort>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->path)) {
             $this->path->xmlSerialize(true, $sxe->addChild('path'));

@@ -8,7 +8,7 @@
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Michael A. Smith <michael@opencoreemr.com>
- * @copyright Copyright (c) 2026 OpenCoreEMR Inc. <https://opencoreemr.com/>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -339,6 +339,64 @@ class ValidationUtilsIsolatedTest extends TestCase
         $this->assertSame(10.0, ValidationUtils::validateFloat(10.0, min: 1.0, max: 10.0));
         $this->assertFalse(ValidationUtils::validateFloat(0.5, min: 1.0, max: 10.0));
         $this->assertFalse(ValidationUtils::validateFloat(10.5, min: 1.0, max: 10.0));
+    }
+
+    #[DataProvider('positiveAmountProvider')]
+    public function testParsePositiveAmountAcceptsPositiveValues(mixed $input, float $expected): void
+    {
+        $this->assertSame($expected, ValidationUtils::parsePositiveAmount($input));
+    }
+
+    /**
+     * @return array<string, array{mixed, float}>
+     *
+     * @codeCoverageIgnore Data providers run before coverage instrumentation starts.
+     */
+    public static function positiveAmountProvider(): array
+    {
+        return [
+            'float' => [42.5, 42.5],
+            'numeric string' => ['42.5', 42.5],
+            'integer' => [42, 42.0],
+            'integer string' => ['42', 42.0],
+            'scientific notation' => ['1e3', 1000.0],
+            'smallest positive cent' => ['0.01', 0.01],
+            'leading whitespace' => [' 42.5', 42.5],
+        ];
+    }
+
+    #[DataProvider('nonPositiveAmountProvider')]
+    public function testParsePositiveAmountRejectsEverythingElse(mixed $input): void
+    {
+        $this->assertNull(ValidationUtils::parsePositiveAmount($input));
+    }
+
+    /**
+     * @return array<string, array{mixed}>
+     *
+     * @codeCoverageIgnore Data providers run before coverage instrumentation starts.
+     */
+    public static function nonPositiveAmountProvider(): array
+    {
+        return [
+            // Zero is not a payment, and the inclusive min_range of
+            // validateFloat() cannot exclude it -- this is the whole reason
+            // parsePositiveAmount() exists.
+            'zero float' => [0.0],
+            'zero string' => ['0'],
+            'zero with decimals' => ['0.00'],
+            'negative float' => [-10.5],
+            'negative string' => ['-0.01'],
+            // Tampered or mistyped request input.
+            'non-numeric' => ['not a number'],
+            'empty string' => [''],
+            'null' => [null],
+            'array' => [[]],
+            'trailing garbage' => ['42.5abc'],
+            'currency symbol' => ['$42.50'],
+            'thousands separator' => ['1,000'],
+            'hex' => ['0x1A'],
+        ];
     }
 
     public function testNpiValidationWithValidNpis(): void

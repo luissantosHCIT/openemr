@@ -20,22 +20,28 @@
  */
 
 require_once("../globals.php");
-require_once("$srcdir/patient.inc.php");
-require_once("$srcdir/forms.inc.php");
 require_once("../../custom/code_types.inc.php");
-require_once "$srcdir/user.inc.php";
-require_once("$srcdir/payment.inc.php");
 
 use OpenEMR\Billing\InvoiceSummary;
 use OpenEMR\Billing\SLEOB;
+use OpenEMR\Common\Acl\AccessDeniedHelper;
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Common\Utils\FormatMoney;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
 
+if (!AclMain::aclCheckCore('acct', 'eob', '', 'write')) {
+    AccessDeniedHelper::denyWithTemplate("ACL check failed for acct/eob: EOB Posting - Invoice", xl("EOB Posting - Invoice"));
+}
+
+$srcDir = OEGlobalsBag::getInstance()->getSrcDir();
+require_once($srcDir . '/patient.inc.php');
+require_once($srcDir . '/forms.inc.php');
+
 $debug = 0; // set to 1 for debugging mode
-$save_stay = (!empty($_REQUEST['form_save']) && ($_REQUEST['form_save'] == '1')) ? true : false;
+$save_stay = !empty($_REQUEST['form_save']) && ($_REQUEST['form_save'] == '1');
 $from_posting = (0 + ($_REQUEST['isPosting'] ?? null)) ? 1 : 0;
 $g_posting_adj_disable = OEGlobalsBag::getInstance()->getBoolean('posting_adj_disable') ? 'checked' : '';
 if ($from_posting) {
@@ -223,7 +229,7 @@ $info_msg = "";
                 <?php $datetimepicker_timepicker = false; ?>
                 <?php $datetimepicker_showseconds = false; ?>
                 <?php $datetimepicker_formatInput = true; ?>
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
         });

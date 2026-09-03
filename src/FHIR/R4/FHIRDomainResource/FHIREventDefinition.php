@@ -1135,15 +1135,13 @@ class FHIREventDefinition extends FHIRDomainResource implements \JsonSerializabl
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<EventDefinition xmlns="http://hl7.org/fhir"></EventDefinition>');
-        }
+        $sxe ??= new \SimpleXMLElement('<EventDefinition xmlns="http://hl7.org/fhir"></EventDefinition>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->url)) {
             $this->url->xmlSerialize(true, $sxe->addChild('url'));

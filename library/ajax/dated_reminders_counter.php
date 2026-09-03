@@ -16,7 +16,6 @@
 
 require_once(__DIR__ . "/../../interface/globals.php");
 require_once("$srcdir/dated_reminder_functions.php");
-require_once("$srcdir/pnotes.inc.php");
 
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Session\SessionTracker;
@@ -31,8 +30,6 @@ if (SessionTracker::isSessionExpired()) {
     echo json_encode(['timeoutMessage' => 'timeout']);
     exit;
 }
-// keep this below above time out check.
-OpenEMR\Common\Session\SessionUtil::setSession('keepAliveTime', time());
 
 $total_counts = [];
 $other_count = [];

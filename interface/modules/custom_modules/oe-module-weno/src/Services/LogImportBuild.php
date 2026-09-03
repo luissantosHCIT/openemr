@@ -63,7 +63,7 @@ class LogImportBuild
         return $entry['count'] ?? 0;
     }
 
-    function convertToUTC($dateString)
+    public function convertToUTC($dateString)
     {
         $date = new DateTime($dateString, new DateTimeZone('UTC'));
         $tz = new DateTimeZone(date_default_timezone_get());
@@ -91,6 +91,7 @@ class LogImportBuild
                 if (!isset($line[1])) {
                     continue;
                 }
+                $is_saved = 0;
                 if (isset($line[4])) {
                     $this->messageid = $line[4];
                     $is_saved = $this->checkMessageId();

@@ -19,6 +19,8 @@
  * @return  string     Escaped parameter.
  */
 
+use OpenEMR\Common\Database\QueryUtils;
+use OpenEMR\Common\Database\SqlQueryException;
 use OpenEMR\Core\OEGlobalsBag;
 
 function add_escape_custom($s)
@@ -93,8 +95,8 @@ function process_cols_escape($s)
  *
  * @param   string|array        $s       sql column name(s) variable to be escaped/sanitized.
  * @param   array         $tables  The table(s) that the sql columns is from (in an array).
- * @param   boolean       $long    Use long form (ie. table.colname) vs short form (ie. colname).
- * @param   boolean       $throwException Whether to throw a SQL exception instead of dying
+ * @param bool $long Use long form (ie. table.colname) vs short form (ie. colname).
+ * @param bool $throwException Whether to throw a SQL exception instead of dying
  * @return  string                 Escaped table name variable.
  */
 function escape_sql_column_name($s, $tables, $long = false, $throwException = false)
@@ -115,37 +117,37 @@ function escape_sql_column_name($s, $tables, $long = false, $throwException = fa
 
     // Reject column names containing backticks to prevent identifier-context injection
     if (str_contains($s, '`')) {
-        throw new \OpenEMR\Common\Database\SqlQueryException("", "ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s));
+        throw new SqlQueryException("", "ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s));
     }
 
     // If the $tables is empty, then process them all
     if (empty($tables)) {
-        $res = sqlStatementNoLog("SHOW TABLES");
-        $tables = [];
-        while ($row = sqlFetchArray($res)) {
-            $keys_return = array_keys($row);
-            $tables[] = $row[$keys_return[0]];
-        }
-    }
-
-    // First need to escape the $tables
-    $tables_escaped = [];
-    foreach ($tables as $table) {
-        $tables_escaped[] = escape_table_name($table);
+        $tables = QueryUtils::listTables();
     }
 
     // Collect all the possible sql columns from the tables
     $columns_options = [];
-    foreach ($tables_escaped as $table_escaped) {
-        $res = sqlStatementNoLog("SHOW COLUMNS FROM " . $table_escaped);
-        while ($row = sqlFetchArray($res)) {
-            $columns_options[] = $long ? $table_escaped . "." . $row['Field'] : $row['Field'];
+    foreach ($tables as $table) {
+        if (!is_string($table)) {
+            continue;
+        }
+
+        // escapeTableName resolves casing differences, so this is the canonical
+        // name; strip backticks for whitelist comparison as input won't have them
+        $table_for_whitelist = trim(QueryUtils::escapeTableName($table), '`');
+        foreach (QueryUtils::listTableFields($table_for_whitelist) as $field) {
+            $columns_options[] = $long ? $table_for_whitelist . "." . $field : $field;
         }
     }
 
     // Whitelist against actual columns, then backtick-quote to keep in identifier context
     $dieIfNoMatch = !$throwException;
     $column = escape_identifier($s, $columns_options, $dieIfNoMatch, true, $throwException);
+    // For table.column format, backtick each part separately
+    if ($long && str_contains($column, '.')) {
+        [$table, $col] = explode('.', $column, 2);
+        return sprintf('`%s`.`%s`', $table, $col);
+    }
     return sprintf('`%s`', $column);
 }
 
@@ -169,7 +171,7 @@ function escape_sql_column_name($s, $tables, $long = false, $throwException = fa
  */
 function escape_table_name($s)
 {
-    return \OpenEMR\Common\Database\QueryUtils::escapeTableName($s);
+    return QueryUtils::escapeTableName($s);
 }
 
 /**
@@ -192,12 +194,12 @@ function escape_table_name($s)
  *  may not always be the case.
  *
  * @param   string       $s                Sql identifier variable to be escaped/sanitized.
- * @param   array/string $whitelist_items  Items used in whitelisting method (See function description for details of whitelisting method).
+ * @param array|string $whitelist_items Items used in whitelisting method (See function description for details of whitelisting method).
  *                                          Standard use is to use a array. If use a string, then should be regex expression of allowed
  *                                          characters (for example 'a-zA-Z0-9_').
- * @param   boolean      $die_if_no_match  If there is no match in the whitelist, then die and echo an error to screen and log.
- * @param   boolean      $case_sens_match  Use case sensitive match (this is default).
- * @param   boolean      $throw_exception_if_no_match If there is no match in the whitelist then throw an exception
+ * @param bool $die_if_no_match If there is no match in the whitelist, then die and echo an error to screen and log.
+ * @param bool $case_sens_match Use case sensitive match (this is default).
+ * @param bool $throw_exception_if_no_match If there is no match in the whitelist then throw an exception
  * @return  string                         Escaped/sanitized sql identifier variable.
  */
 function escape_identifier($s, $whitelist_items, $die_if_no_match = false, $case_sens_match = true, $throw_exception_if_no_match = false)
@@ -222,7 +224,7 @@ function escape_identifier($s, $whitelist_items, $die_if_no_match = false, $case
                     error_log("ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s), 0);
                     die("<br /><span style='color:red;font-weight:bold;'>" . xlt("There was an OpenEMR SQL Escaping ERROR of the following string") . " " . text($s) . "</span><br />");
                 } else if ($throw_exception_if_no_match) {
-                    throw new \OpenEMR\Common\Database\SqlQueryException("", "ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s));
+                    throw new SqlQueryException("", "ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s));
                 } else {
                     // Return first token since no match
                     $key = 0;
@@ -238,7 +240,7 @@ function escape_identifier($s, $whitelist_items, $die_if_no_match = false, $case
                 error_log("ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s), 0);
                 die("<br /><span style='color:red;font-weight:bold;'>" . xlt("There was an OpenEMR SQL Escaping ERROR of the following string") . " " . text($s) . "</span><br />");
             } else if ($throw_exception_if_no_match) {
-                throw new \OpenEMR\Common\Database\SqlQueryException("", "ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s));
+                throw new SqlQueryException("", "ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s));
             } else {
                 // Contains all legal characters, so return the legal string
                 return $s;

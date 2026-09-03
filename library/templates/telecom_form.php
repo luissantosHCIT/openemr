@@ -12,7 +12,7 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-use OpenEMR\Common\Twig\TwigContainer;
+use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Services\ContactService;
 use OpenEMR\Services\ContactTelecomService;
@@ -83,10 +83,9 @@ $templateVars = [
     'widget_constants' => $widgetConstants,
     'edit_options' => $edit_options ?? null,
     'contact_id' => $contact ? $contact->get_id() : null,
-    'srcdir' => OEGlobalsBag::getInstance()->get('srcdir')
+    'srcdir' => OEGlobalsBag::getInstance()->getSrcDir()
 ];
 
 // Render Twig template
-$twigContainer = new TwigContainer(null, OEGlobalsBag::getInstance()->getKernel());
-$twig = $twigContainer->getTwig();
+$twig = ServiceContainer::getTwig();
 echo $twig->render('patient/demographics/telecom_form.html.twig', $templateVars);

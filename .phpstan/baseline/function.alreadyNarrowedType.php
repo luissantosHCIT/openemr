@@ -17,6 +17,16 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../gacl/admin/assign_group.php',
 ];
 $ignoreErrors[] = [
+    'message' => '#^Call to function is_object\\(\\) with ADORecordSet will always evaluate to true\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../gacl/admin/object_search.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Call to function is_array\\(\\) with array\\<int\\<0, max\\>, mixed\\> will always evaluate to true\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../interface/forms/eye_mag/php/eye_mag_functions.php',
+];
+$ignoreErrors[] = [
     'message' => '#^Call to function is_array\\(\\) with non\\-empty\\-array will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../interface/forms/newpatient/C_EncounterVisitForm.class.php',
@@ -37,7 +47,17 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../interface/main/finder/document_select.php',
 ];
 $ignoreErrors[] = [
+    'message' => '#^Call to function is_string\\(\\) with string will always evaluate to true\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../interface/modules/custom_modules/oe-module-faxsms/src/Controller/AppDispatch.php',
+];
+$ignoreErrors[] = [
     'message' => '#^Call to function is_object\\(\\) with OpenEMR\\\\Modules\\\\FaxSMS\\\\EtherFax\\\\FaxStatus will always evaluate to true\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../interface/modules/custom_modules/oe-module-faxsms/src/Controller/EtherFaxActions.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Call to function is_string\\(\\) with non\\-empty\\-string will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../interface/modules/custom_modules/oe-module-faxsms/src/Controller/EtherFaxActions.php',
 ];
@@ -45,6 +65,11 @@ $ignoreErrors[] = [
     'message' => '#^Call to function property_exists\\(\\) with OpenEMR\\\\Modules\\\\FaxSMS\\\\EtherFax\\\\FaxStatus and \'FaxResult\' will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../interface/modules/custom_modules/oe-module-faxsms/src/Controller/EtherFaxActions.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Call to function is_string\\(\\) with string will always evaluate to true\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../interface/modules/custom_modules/oe-module-faxsms/src/Controller/SignalWireClient.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Call to function is_null\\(\\) with null will always evaluate to true\\.$#',
@@ -72,9 +97,9 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../interface/modules/zend_modules/module/Installer/src/Installer/Model/InstModuleTable.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Call to function is_numeric\\(\\) with int will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../interface/patient_file/encounter/forms.php',
+    'message' => '#^Call to function is_string\\(\\) with string will always evaluate to true\\.$#',
+    'count' => 2,
+    'path' => __DIR__ . '/../../interface/super/edit_globals.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Call to function is_array\\(\\) with array\\{array\\{callback_url\\: non\\-falsy\\-string, providers\\?\\: non\\-empty\\-list\\<non\\-empty\\-array\\>, facilities\\?\\: non\\-empty\\-list\\<non\\-empty\\-array\\>, categories\\?\\: non\\-empty\\-list\\<non\\-empty\\-array\\>, apptstats\\?\\: non\\-empty\\-list\\<non\\-empty\\-array\\>, checkedOut\\?\\: non\\-empty\\-list\\<non\\-empty\\-array\\>, clinical_reminders\\?\\: non\\-empty\\-list\\<non\\-empty\\-array\\>\\}\\} will always evaluate to true\\.$#',
@@ -102,23 +127,8 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../library/clinical_rules.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Call to function is_array\\(\\) with array\\{pmt\\: 0\\|\'\'\\|float, fee\\: 0\\|float, clmpmt\\: 0\\|float, clmadj\\: 0\\|float, ptrsp\\: 0\\|float, svcptrsp\\: 0\\|float, svcfee\\: float\\|int, svcpmt\\?\\: \\(float\\|int\\), \\.\\.\\.\\} will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/edihistory/edih_835_html.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_array\\(\\) with list\\<mixed\\> will always evaluate to true\\.$#',
+    'message' => '#^Call to function is_array\\(\\) with list\\<array\\> will always evaluate to true\\.$#',
     'count' => 2,
-    'path' => __DIR__ . '/../../library/edihistory/edih_835_html.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_array\\(\\) with list\\<non\\-empty\\-list\\<string\\>\\> will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/edihistory/edih_835_html.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_array\\(\\) with non\\-empty\\-array\\<non\\-falsy\\-string, list\\<non\\-empty\\-list\\<string\\>\\>\\> will always evaluate to true\\.$#',
-    'count' => 1,
     'path' => __DIR__ . '/../../library/edihistory/edih_835_html.php',
 ];
 $ignoreErrors[] = [
@@ -128,7 +138,7 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Call to function is_array\\(\\) with array will always evaluate to true\\.$#',
-    'count' => 2,
+    'count' => 8,
     'path' => __DIR__ . '/../../library/edihistory/edih_archive.php',
 ];
 $ignoreErrors[] = [
@@ -137,18 +147,8 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../library/edihistory/edih_archive.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Call to function is_array\\(\\) with array\\<mixed\\> will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/edihistory/edih_archive.php',
-];
-$ignoreErrors[] = [
     'message' => '#^Call to function is_array\\(\\) with array will always evaluate to true\\.$#',
     'count' => 8,
-    'path' => __DIR__ . '/../../library/edihistory/edih_csv_inc.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_float\\(\\) with float will always evaluate to true\\.$#',
-    'count' => 1,
     'path' => __DIR__ . '/../../library/edihistory/edih_csv_inc.php',
 ];
 $ignoreErrors[] = [
@@ -182,39 +182,9 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../library/edihistory/edih_uploads.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Call to function is_array\\(\\) with array will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/edihistory/edih_x12file_class.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_string\\(\\) with non\\-falsy\\-string will always evaluate to true\\.$#',
-    'count' => 2,
-    'path' => __DIR__ . '/../../library/edihistory/edih_x12file_class.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_array\\(\\) with array will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/edihistory/test_edih_sftp_files.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_string\\(\\) with non\\-falsy\\-string will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/edihistory/test_edih_sftp_files.php',
-];
-$ignoreErrors[] = [
     'message' => '#^Call to function is_countable\\(\\) with array\\<int\\<0, max\\>, non\\-empty\\-array\\> will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../library/patient.inc.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_string\\(\\) with non\\-falsy\\-string will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/smarty_legacy/smarty/Config_File_Legacy.class.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_array\\(\\) with non\\-empty\\-list\\<mixed\\> will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/smarty_legacy/smarty/plugins/function.fetch.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Call to function is_array\\(\\) with array will always evaluate to true\\.$#',
@@ -247,9 +217,14 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../portal/patient/fwk/libs/verysimple/Phreeze/PortalController.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Call to function is_string\\(\\) with string will always evaluate to true\\.$#',
+    'message' => '#^Call to function is_array\\(\\) with array will always evaluate to true\\.$#',
     'count' => 2,
-    'path' => __DIR__ . '/../../portal/portal_payment.php',
+    'path' => __DIR__ . '/../../src/Billing/EdiHistory/X12File.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Call to function is_string\\(\\) with non\\-falsy\\-string will always evaluate to true\\.$#',
+    'count' => 2,
+    'path' => __DIR__ . '/../../src/Billing/EdiHistory/X12File.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Call to function is_object\\(\\) with ADORecordSet will always evaluate to true\\.$#',
@@ -287,13 +262,23 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../src/FHIR/R4/PHPFHIRResponseParser.php',
 ];
 $ignoreErrors[] = [
+    'message' => '#^Call to function is_array\\(\\) with array will always evaluate to true\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../src/Gacl/Gacl.php',
+];
+$ignoreErrors[] = [
     'message' => '#^Call to function is_object\\(\\) with ADOConnection will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/Gacl/Gacl.php',
 ];
 $ignoreErrors[] = [
+    'message' => '#^Call to function is_scalar\\(\\) with string will always evaluate to true\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../src/Gacl/Gacl.php',
+];
+$ignoreErrors[] = [
     'message' => '#^Call to function is_array\\(\\) with array will always evaluate to true\\.$#',
-    'count' => 4,
+    'count' => 7,
     'path' => __DIR__ . '/../../src/Gacl/GaclApi.php',
 ];
 $ignoreErrors[] = [
@@ -410,11 +395,6 @@ $ignoreErrors[] = [
     'message' => '#^Call to function is_string\\(\\) with string will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/Services/UserService.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Call to function is_string\\(\\) with non\\-falsy\\-string will always evaluate to true\\.$#',
-    'count' => 2,
-    'path' => __DIR__ . '/../../src/USPS/USPSAddressVerifyV3.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Call to function is_int\\(\\) with int will always evaluate to true\\.$#',

@@ -14,7 +14,6 @@ namespace OpenEMR\Modules\Dorn;
 
 use Document;
 use OpenEMR\BC\ServiceContainer;
-use OpenEMR\Common\Crypto\KeySource;
 use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
@@ -86,8 +85,9 @@ class ReceiveHl7Results
         $debug = trim((string) $record['DorP']) === 'D';
 
         $logpath = OEGlobalsBag::getInstance()->get('OE_SITE_DIR') . "/documents/procedure_results/logs/$lab_npi";
-        $prpath .= $resultPath . '/' . $ppid . '-' . $lab_npi;
+        $prpath = $resultPath . '/' . $ppid . '-' . $lab_npi;
         $file = "result_" . $orderNumber . ".hl7";
+        $log = '';
 
         $msg = $this->validatePaths($resultPath);
         if (!empty($msg)) {
@@ -198,6 +198,7 @@ class ReceiveHl7Results
 
         $rhl7_segnum = 0;
         $obrPerformingOrganization = '';
+        $arep = [];
 
         if (!str_starts_with((string) $hl7, 'MSH')) {
             return $this->rhl7LogMsg(xl('Input does not begin with a MSH segment'), true);
@@ -664,14 +665,7 @@ class ReceiveHl7Results
                     $code_seq_array = [];
                 }
 
-                // Find the order line item (procedure code) that matches this result.
-                // If there is more than one, then we select the one whose sequence number
-                // is next after the last sequence number encountered for this procedure
-                // code; this assumes that result OBRs are returned in the same sequence
-                // as the corresponding OBRs in the order.
-                if (!isset($code_seq_array[$in_procedure_code])) {
-                    $code_seq_array[$in_procedure_code] = 0;
-                }
+                $code_seq_array[$in_procedure_code] ??= 0;
 
                 $pcquery = "SELECT pc.* FROM procedure_order_code AS pc " .
                     "WHERE pc.procedure_order_id = ? AND pc.procedure_code = ? " .
@@ -988,9 +982,8 @@ class ReceiveHl7Results
      * Look for a lab matching the given XCN field from some segment.
      *
      * @param  array $seg MSH seg identifying a provider.
-     * @return mixed        TRUE, or FALSE if no match.
      */
-    private function matchLab(&$hl7, $send_acct, $lab_acct = '', $lab_app = '', $lab_npi = '')
+    private function matchLab(&$hl7, $send_acct, $lab_acct = '', $lab_app = '', $lab_npi = ''): bool
     {
         if (empty($hl7)) {
             return false;
@@ -1649,9 +1642,7 @@ class ReceiveHl7Results
         $employer_data = [];
         $tmp = sqlQuery("SELECT MAX(pid)+1 AS pid FROM patient_data");
         $ptid = empty($tmp['pid']) ? 1 : intval($tmp['pid']);
-        if (!isset($patient_data['pubpid'])) {
-            $patient_data['pubpid'] = $ptid;
-        }
+        $patient_data['pubpid'] ??= $ptid;
 
         updatePatientData($ptid, $patient_data, true);
         updateEmployerData($ptid, $employer_data, true);
@@ -1668,10 +1659,7 @@ class ReceiveHl7Results
      */
     private function hl7Crypt($content)
     {
-        if (OEGlobalsBag::getInstance()->getBoolean('drive_encryption')) {
-            $content = (ServiceContainer::getCrypto())->encryptStandard($content, keySource: KeySource::Database);
-        }
-
-        return $content;
+        return ServiceContainer::getCrypto()
+            ->encryptForFilesystem($content);
     }
 }

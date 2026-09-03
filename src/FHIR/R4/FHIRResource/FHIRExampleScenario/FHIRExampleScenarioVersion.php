@@ -176,15 +176,13 @@ class FHIRExampleScenarioVersion extends FHIRBackboneElement implements \JsonSer
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ExampleScenarioVersion xmlns="http://hl7.org/fhir"></ExampleScenarioVersion>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ExampleScenarioVersion xmlns="http://hl7.org/fhir"></ExampleScenarioVersion>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->versionId)) {
             $this->versionId->xmlSerialize(true, $sxe->addChild('versionId'));

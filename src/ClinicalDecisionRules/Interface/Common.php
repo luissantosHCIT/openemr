@@ -15,17 +15,39 @@
 
 namespace OpenEMR\ClinicalDecisionRules\Interface;
 
+use OpenEMR\Common\Http\CurrentRequest;
 use OpenEMR\Core\OEGlobalsBag;
+use Symfony\Component\HttpFoundation\Request;
 
 class Common
 {
+    /**
+     * The request being served. Previously this class kept its own cached
+     * Request; it now defers to the process-wide holder so the CDR helpers
+     * read the same instance as the rest of the request.
+     */
+    private static function request(): Request
+    {
+        return CurrentRequest::get();
+    }
+
+    /**
+     * Drop the held request. Tests that mutate `$_GET`/`$_POST` between cases
+     * should call this in their setUp/tearDown so subsequent `get()`/`post()`
+     * calls re-read the freshly-mutated globals.
+     */
+    public static function resetRequestCache(): void
+    {
+        CurrentRequest::reset();
+    }
+
     /**
      * This is a wrapper for implode function, which calls each function in the
      * array $funcs on each piece in the array $pieces
      *
      * @param string $glue
      * @param array $pieces
-     * @param array $funcs
+     * @param list<callable> $funcs
      * @return string
      */
     public static function implode_funcs($glue, array $pieces, array $funcs): string
@@ -51,8 +73,11 @@ class Common
      */
     public static function get($var, $default = ''): string
     {
-        $val = $_GET[$var] ?? null;
-        return isset($val) && $val !== '' ? $val : $default;
+        $val = self::request()->query->all()[$var] ?? null;
+        if (is_string($val) && $val !== '') {
+            return $val;
+        }
+        return $default;
     }
 
     /**
@@ -64,8 +89,15 @@ class Common
      */
     public static function post($var, $default = ''): string|array
     {
-        $val = $_POST[$var] ?? null;
-        return isset($val) && $val !== '' ? $val : $default;
+        $val = self::request()->request->all()[$var] ?? null;
+        if (is_array($val)) {
+            /** @var string[] $val */
+            return $val;
+        }
+        if (is_string($val) && $val !== '') {
+            return $val;
+        }
+        return $default;
     }
 
     /**
@@ -81,22 +113,22 @@ class Common
 
     public static function base_url(): string
     {
-        return OEGlobalsBag::getInstance()->get('webroot') . '/interface/super/rules';
+        return OEGlobalsBag::getInstance()->getKernel()->getWebRoot() . '/interface/super/rules';
     }
 
     public static function src_dir(): string
     {
-        return OEGlobalsBag::getInstance()->get('srcdir');
+        return OEGlobalsBag::getInstance()->getKernel()->getSrcDir();
     }
 
     public static function template_dir(): string
     {
-        return OEGlobalsBag::getInstance()->get('template_dir') . 'super' . DIRECTORY_SEPARATOR . 'rules' . DIRECTORY_SEPARATOR;
+        return OEGlobalsBag::getInstance()->getKernel()->getTemplateDir() . 'super' . DIRECTORY_SEPARATOR . 'rules' . DIRECTORY_SEPARATOR;
     }
 
     public static function base_dir(): string
     {
-        return OEGlobalsBag::getInstance()->get('incdir') . '/super/rules/';
+        return OEGlobalsBag::getInstance()->getKernel()->getIncludeRoot() . '/super/rules/';
     }
 
     public static function library_dir(): string

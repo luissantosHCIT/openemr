@@ -28,7 +28,6 @@ use OpenEMR\Common\Auth\AuthHash;
 use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
-use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Common\Utils\RandomGenUtils;
 use OpenEMR\Common\Utils\ValidationUtils;
 use OpenEMR\Core\Kernel;
@@ -62,7 +61,7 @@ class PatientAccessOnsiteService
         $this->authUser = $session->get('authUser');
         $this->authProvider = $session->get('authProvider');
         $this->kernel = OEGlobalsBag::getInstance()->getKernel();
-        $this->twig = (new TwigContainer(null, $this->kernel))->getTwig();
+        $this->twig = ServiceContainer::getTwig();
         $this->logger = $logger ?? ServiceContainer::getLogger();
     }
 
@@ -78,7 +77,7 @@ class PatientAccessOnsiteService
     {
         $session = SessionWrapperFactory::getInstance()->getActiveSession();
         $sql = "SELECT setting_value FROM user_settings WHERE setting_user = ? AND setting_label = ? ORDER BY setting_user LIMIT 1";
-        $user = (is_null($user) ? $session->get('authUserID') : $user);
+        $user ??= $session->get('authUserID');
         $rtn = sqlQueryNoLog($sql, [$user, $label]);
 
         return $rtn['setting_value'] ?? 0;
@@ -253,7 +252,7 @@ class PatientAccessOnsiteService
         return RandomGenUtils::generatePortalPassword();
     }
 
-    private function emailLogin($patient_id, $htmlMsg, $plainMsg, Environment $twig)
+    private function emailLogin($patient_id, $htmlMsg, $plainMsg, Environment $twig): bool
     {
         $patientData = sqlQuery("SELECT * FROM `patient_data` WHERE `pid`=?", [$patient_id]);
         if ($patientData['hipaa_allowemail'] != "YES" || empty($patientData['email']) || empty(OEGlobalsBag::getInstance()->getString('patient_reminder_sender_email'))) {

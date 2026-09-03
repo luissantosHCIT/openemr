@@ -258,15 +258,13 @@ class FHIRMedicationKnowledgeRegulatory extends FHIRBackboneElement implements \
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<MedicationKnowledgeRegulatory xmlns="http://hl7.org/fhir"></MedicationKnowledgeRegulatory>');
-        }
+        $sxe ??= new \SimpleXMLElement('<MedicationKnowledgeRegulatory xmlns="http://hl7.org/fhir"></MedicationKnowledgeRegulatory>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->regulatoryAuthority)) {
             $this->regulatoryAuthority->xmlSerialize(true, $sxe->addChild('regulatoryAuthority'));

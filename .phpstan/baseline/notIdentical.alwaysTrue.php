@@ -74,11 +74,6 @@ $ignoreErrors[] = [
 $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\!\\=\\= between string and false will always evaluate to true\\.$#',
     'count' => 1,
-    'path' => __DIR__ . '/../../library/edihistory/edih_277_html.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\!\\=\\= between string and false will always evaluate to true\\.$#',
-    'count' => 1,
     'path' => __DIR__ . '/../../library/edihistory/edih_278_html.php',
 ];
 $ignoreErrors[] = [
@@ -90,11 +85,6 @@ $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\!\\=\\= between non\\-falsy\\-string and \'\' will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../library/options.inc.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\!\\=\\= between string and null will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../library/smarty_legacy/smarty/Smarty_Compiler_Legacy.class.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\!\\=\\= between Phreezable and false will always evaluate to true\\.$#',
@@ -132,6 +122,11 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../src/FHIR/SMART/ClientAdminController.php',
 ];
 $ignoreErrors[] = [
+    'message' => '#^Strict comparison using \\!\\=\\= between string\\|null and false will always evaluate to true\\.$#',
+    'count' => 8,
+    'path' => __DIR__ . '/../../src/Gacl/GaclApi.php',
+];
+$ignoreErrors[] = [
     'message' => '#^Strict comparison using \\!\\=\\= between non\\-falsy\\-string and \'\' will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/Health/Check/CacheCheck.php',
@@ -140,6 +135,11 @@ $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\!\\=\\= between array and null will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/Services/BaseService.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Strict comparison using \\!\\=\\= between int and null will always evaluate to true\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../src/Services/Cda/CdaTemplateImportDispose.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\!\\=\\= between int and \'200\' will always evaluate to true\\.$#',
@@ -165,11 +165,6 @@ $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\!\\=\\= between OpenEMR\\\\FHIR\\\\R4\\\\FHIRElement\\\\FHIRPeriod and null will always evaluate to true\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/Services/FHIR/FhirPatientService.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Strict comparison using \\!\\=\\= between OpenEMR\\\\Services\\\\Search\\\\FhirSearchParameterDefinition and null will always evaluate to true\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../src/Services/FHIR/FhirRelatedPersonService.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Strict comparison using \\!\\=\\= between string and false will always evaluate to true\\.$#',

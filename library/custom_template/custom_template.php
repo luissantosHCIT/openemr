@@ -29,7 +29,6 @@
 
 require_once("../../interface/globals.php");
 require_once("$srcdir/lists.inc.php");
-require_once("$srcdir/user.inc.php");
 
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
@@ -89,7 +88,7 @@ if ($isNN) {
 }
     Header::setupHeader(['common', 'opener', 'select2', 'ckeditor', $ckeditorConfig]);
 ?>
-<script src="<?php echo OEGlobalsBag::getInstance()->get('webroot') ?>/library/js/ajax_functions_writer.js"></script>
+<script src="<?php echo OEGlobalsBag::getInstance()->getWebRoot() ?>/library/js/ajax_functions_writer.js"></script>
 
 <script>
     // note these variables are set on backend server side, leaving comment for server side readers
@@ -118,7 +117,7 @@ if ($isNN) {
                     },
                     dataType: 'json',
                 },
-                <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/select2.js.php'); ?>
+                <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/select2.js.php'); ?>
             });
 
             $('#contextSearch').on('select2:select', function (e) {
@@ -254,7 +253,7 @@ if ($isNN) {
     });
 </script>
 <script>
-    <?php require(OEGlobalsBag::getInstance()->get('srcdir') . "/restoreSession.php"); ?>
+    <?php require(OEGlobalsBag::getInstance()->getSrcDir() . "/restoreSession.php"); ?>
 </script>
 </head>
 <body class="body_top">

@@ -1249,15 +1249,13 @@ class FHIRPlanDefinition extends FHIRDomainResource implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<PlanDefinition xmlns="http://hl7.org/fhir"></PlanDefinition>');
-        }
+        $sxe ??= new \SimpleXMLElement('<PlanDefinition xmlns="http://hl7.org/fhir"></PlanDefinition>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->url)) {
             $this->url->xmlSerialize(true, $sxe->addChild('url'));

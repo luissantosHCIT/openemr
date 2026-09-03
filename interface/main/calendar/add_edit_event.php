@@ -42,14 +42,12 @@
  */
 
 require_once(__DIR__ . '/../../globals.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/patient.inc.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/forms.inc.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/calendar.inc.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/options.inc.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/encounter_events.inc.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/patient_tracker.inc.php');
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('incdir') . "/main/holidays/Holidays_Controller.php");
-require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->get('srcdir') . '/group.inc.php');
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/patient.inc.php');
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/forms.inc.php');
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/options.inc.php');
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/encounter_events.inc.php');
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/patient_tracker.inc.php');
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . '/group.inc.php');
 
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\BC\Utilities;
@@ -63,6 +61,7 @@ use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Appointments\AppointmentDialogCloseEvent;
 use OpenEMR\Events\Appointments\AppointmentRenderEvent;
 use OpenEMR\Events\Appointments\AppointmentSetEvent;
+use OpenEMR\Services\HolidayService;
 
  //Check access control
 if (!AclMain::aclCheckCore('patients', 'appt', '', ['write','wsome'])) {
@@ -79,13 +78,13 @@ $default_catid = !empty($_GET['catid']) ? $_GET['catid'] : (!empty(OEGlobalsBag:
 
 // form logic fails if not set to boolean
 if (isset($_GET['group'])) {
-    $_GET['group'] = $_GET['group'] == "true" ? true : false;
+    $_GET['group'] = $_GET['group'] == "true";
 }
 if (isset($_GET['prov'])) {
-    $_GET['prov'] = $_GET['prov'] == "true" ? true : false;
+    $_GET['prov'] = $_GET['prov'] == "true";
 }
 $_POST['form_date'] = DateToYYYYMMDD($_POST['form_date'] ?? null);
-$_POST['form_enddate'] = DateToYYYYMMDD($_POST['form_enddate'] ?? null);
+$_POST['form_enddate'] = DateToYYYYMMDD($_POST['form_enddate'] ?? null) ?: null;
 
 $date = $date ? substr((string) $date, 0, 4) . '-' . substr((string) $date, 4, 2) . '-' . substr((string) $date, 6) : date("Y-m-d");
 
@@ -107,6 +106,19 @@ if (isset($_GET['starttimeh'])) {
 /* some defaults to start */
 $startampm = '';
 $info_msg = "";
+$duration = 0;
+$endtime = '';
+$starttime = '';
+$event_date = '';
+$locationspec = '';
+$multiple_value = 0;
+$my_recurrtype = 0;
+$noRecurrspec = [];
+$providers_current = [];
+$recurrence_end_date = '';
+$recurrspec = [];
+$e2f = '';
+$new_eid = 0;
 $g_edit = AclMain::aclCheckCore("groups", "gcalendar", false, 'write');
 $g_view = AclMain::aclCheckCore("groups", "gcalendar", false, 'view');
 
@@ -125,7 +137,7 @@ $eventDispatcher = OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher(
 <!--//Not lbf forms use the new validation, please make sure you have the corresponding values in the list Page validation-->
 <?php
 $use_validate_js = 1;
-require_once(OEGlobalsBag::getInstance()->get('srcdir') . "/validation/validation_script.js.php");
+require_once(OEGlobalsBag::getInstance()->getSrcDir() . "/validation/validation_script.js.php");
 //Gets validation rules from Page Validation list.
 //Note that for technical reasons, we are bypassing the standard validateUsingPageRules() call.
 $have_group_global_enabled = true;
@@ -356,8 +368,13 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "duplicate" || $_
 
         // Set up working variables related to repeated events.
         $my_recurrtype = 0;
-        $my_repeat_freq = 0 + ($_POST['form_repeat_freq'] ?? null);
-        $my_repeat_type = 0 + ($_POST['form_repeat_type'] ?? null);
+        // Parse as int at the HTTP boundary: the builder has strict int
+        // parameters, and "0 + $_POST[...]" would yield a float for crafted
+        // decimal input, triggering TypeError before the builder can reject
+        // it. FILTER_VALIDATE_INT returns int or false/null, and the builder
+        // validates the 0 -> out-of-bounds case itself.
+        $my_repeat_freq = filter_input(INPUT_POST, 'form_repeat_freq', FILTER_VALIDATE_INT) ?: 0;
+        $my_repeat_type = filter_input(INPUT_POST, 'form_repeat_type', FILTER_VALIDATE_INT) ?: 0;
         $my_repeat_on_num  = 1;
         $my_repeat_on_day  = 0;
         $my_repeat_on_freq = 0;
@@ -381,22 +398,17 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "duplicate" || $_
         $my_repeat_type = 6; // Keep this as 6. It signifies days of the week recurrence.
         $event_date = setEventDate($_POST['form_date'], $my_repeat_freq);
     } elseif (!empty($_POST['form_repeat'])) {
-        $my_recurrtype = 1;
-        if ($my_repeat_type > 6) { // Changed from 4 to 6 to accommodate new options.
-            $my_recurrtype = 2;
-            $time = strtotime((string) $event_date);
-            $my_repeat_on_day = 0 + date('w', $time);
-            $my_repeat_on_freq = $my_repeat_freq;
-            if (in_array($my_repeat_type, [5, 7, 8, 9])) { //Added conditions for 7th, 8th, 9th.
-                $my_repeat_on_num = intval((date('j', $time) - 1) / 7) + 1;
-            } else {
-                // Last occurrence of this weekday on the month
-                $my_repeat_on_num = 5; // Might need adjustment for new options.
-            }
-            // Maybe not needed, but for consistency with postcalendar:
-            $my_repeat_freq = 0;
-            $my_repeat_type = 0;
-        }
+        $spec = \OpenEMR\Common\Calendar\RecurrenceSpecBuilder::fromRepeatForm(
+            (string) $event_date,
+            $my_repeat_type,
+            $my_repeat_freq,
+        );
+        $my_recurrtype     = $spec->recurrType;
+        $my_repeat_type    = $spec->repeatType;
+        $my_repeat_freq    = $spec->repeatFreq;
+        $my_repeat_on_day  = $spec->repeatOnDay;
+        $my_repeat_on_num  = $spec->repeatOnNum;
+        $my_repeat_on_freq = $spec->repeatOnFreq;
     }
 
 
@@ -512,7 +524,7 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "save")) {
                     $args['form_repeat'] = "0";
                     $args['days_every_week'] = "0";
                     $args['recurrspec'] = $noRecurrspec;
-                    $args['form_enddate'] = "0000-00-00";
+                    $args['form_enddate'] = null;
                     $args['starttime'] = $starttime;
                     $args['endtime'] = $endtime;
                     $args['locationspec'] = $locationspec;
@@ -699,7 +711,7 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "save")) {
                 $args['form_repeat'] = "0";
                 $args['days_every_week'] = "0";
                 $args['recurrspec'] = $noRecurrspec;
-                $args['form_enddate'] = "0000-00-00";
+                $args['form_enddate'] = null;
                 $args['starttime'] = $starttime;
                 $args['endtime'] = $endtime;
                 $args['locationspec'] = $locationspec;
@@ -832,7 +844,7 @@ if (!empty($_POST['form_action'])) {
     // Close this window and refresh the calendar (or the patient_tracker) display.
     echo "<html>\n<body>\n<script>\n";
     if ($info_msg) {
-        echo " alert('" . addslashes($info_msg) . "');\n";
+        echo " alert(" . js_escape($info_msg) . ");\n";
     }
     echo " if (opener && !opener.closed && opener.refreshme) {\n " .
       "  opener.refreshme();\n " . // This is for standard calendar page refresh
@@ -904,7 +916,7 @@ if ($eid) {
         $repeattype = $rspecs['event_repeat_on_num'] < 5 ? 5 : 6;
     }
 
-    $recurrence_end_date = ($row['pc_endDate'] && !Utilities::isDateEmpty($row['pc_endDate'])) ? $row['pc_endDate'] : null;
+    $recurrence_end_date = (is_string($row['pc_endDate']) && !Utilities::isDateEmpty($row['pc_endDate'])) ? $row['pc_endDate'] : null;
     $pcroom = $row['pc_room'];
     $hometext = $row['pc_hometext'];
     if (str_starts_with((string) $hometext, ':text:')) {
@@ -1049,7 +1061,7 @@ while ($crow = sqlFetchArray($cres)) {
 ?>
 <!-- Configuration object: pass PHP values to external JS (Issue #8057) -->
 <script>
-<?php require OEGlobalsBag::getInstance()->get('srcdir') . "/formatting_DateToYYYYMMDD_js.js.php" ?>
+<?php require OEGlobalsBag::getInstance()->getSrcDir() . "/formatting_DateToYYYYMMDD_js.js.php" ?>
 
 var mypcc = <?php echo OEGlobalsBag::getInstance()->getInt('phone_country_code'); ?>;
 
@@ -1058,7 +1070,7 @@ $addEditEventConfig = [
     'durations' => $durationsJson,
     'timeDisplayFormat' => OEGlobalsBag::getInstance()->getInt('time_display_format'),
     'dateDisplayFormat' => OEGlobalsBag::getInstance()->getInt('date_display_format'),
-    'webRoot' => OEGlobalsBag::getInstance()->getString('web_root'),
+    'webRoot' => OEGlobalsBag::getInstance()->getWebRoot(),
     'eid' => $eid,
     'userId' => $userid,
     'translations' => [
@@ -1080,7 +1092,7 @@ $addEditEventConfig = [
 ];
 ?>
 window.addEditEventConfig = <?php echo json_encode($addEditEventConfig); ?>;
-<?php require(OEGlobalsBag::getInstance()->get('srcdir') . "/restoreSession.php"); ?>
+<?php require(OEGlobalsBag::getInstance()->getSrcDir() . "/restoreSession.php"); ?>
 </script>
 
 <!-- Extracted JS functions (Issue #8057) — loaded before event dispatch
@@ -1388,7 +1400,7 @@ if ($_GET['group'] === true && $have_group_global_enabled) { ?>
  </div> <!-- Done with providers now scheduling -->
 <?php
     //Check if repeat is using the new 'days every week' mechanism.
-function isDaysEveryWeek($repeat)
+function isDaysEveryWeek($repeat): bool
 {
     if ($repeat == 3) {
         return true;
@@ -1397,7 +1409,7 @@ function isDaysEveryWeek($repeat)
     }
 }
     //Check if using the regular repeat mechanism.
-function isRegularRepeat($repeat)
+function isRegularRepeat($repeat): bool
 {
     if ($repeat == 1 || $repeat == 2) {
         return true;
@@ -1645,7 +1657,7 @@ $(function () {
         <?php $datetimepicker_timepicker = false; ?>
         <?php $datetimepicker_showseconds = false; ?>
         <?php $datetimepicker_formatInput = true; ?>
-        <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+        <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
         <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
     });
     // add wanted classes to api generated elements.
@@ -1679,6 +1691,9 @@ function are_days_checked(){
 var collectvalidation = <?php echo $collectthis; ?>;
 function validateform(event,value){
     let allDay = document.getElementById('rballday1').checked;
+    let catValue = document.forms[0].form_category.value;
+    let isInOffice = catValue == IN_OFFICE_CAT_ID;
+    let isOutOfOffice = catValue == OUT_OF_OFFICE_CAT_ID;
     collectvalidation.form_hour = {
         numericality: {
             onlyInteger: true,
@@ -1705,7 +1720,7 @@ function validateform(event,value){
         }
     };
 
-    if ( allDay == true) {
+    if (allDay == true || isInOffice == true || isOutOfOffice == true) {
         collectvalidation.form_duration ={};
     } else {
     collectvalidation.form_duration = {
@@ -1808,7 +1823,7 @@ function HideRecurrPopup() {
 }
 
 function deleteEvent() {
-    if (confirm("<?php echo addslashes(xl('Deleting this event cannot be undone. It cannot be recovered once it is gone. Are you sure you wish to delete this event?')); ?>")) {
+    if (confirm(<?php echo xlj('Deleting this event cannot be undone. It cannot be recovered once it is gone. Are you sure you wish to delete this event?'); ?>)) {
         $('#form_action').val("delete");
 
         <?php if ($repeats) : ?>
@@ -1843,14 +1858,14 @@ function SubmitForm() {
     <?php } else { ?>
         <?php
     /*Support Multi-Provider Events in features*/
-        $sdate = $date;
-        $edate = new DateTime($date);
+        $sdate = (string) $date;
+        $edate = new DateTime($sdate);
         $edate->modify('tomorrow');
         $edate = $edate->format('Y-m-d');
         $is_holiday = false;
-        $holidays_controller = new Holidays_Controller();
-        $holidays = $holidays_controller->get_holidays_by_date_range($sdate, $edate);
-        if (in_array($sdate, $holidays)) {
+        $holidayService = HolidayService::createForLegacyContext();
+        $holidays = $holidayService->getHolidaysByDateRange($sdate, $edate);
+        if (in_array($sdate, $holidays, true)) {
             $is_holiday = true;
         }?>
     if (f.form_action.value != 'delete') {

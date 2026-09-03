@@ -8,7 +8,7 @@
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Michael A. Smith <michael@opencoreemr.com>
- * @copyright Copyright (c) 2026 OpenCoreEMR Inc. <https://opencoreemr.com/>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -19,6 +19,7 @@ namespace OpenEMR\Tests\RestControllers;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -41,33 +42,88 @@ class ControllerRoutingTest extends TestCase
      * 'action' parameters, making it order-independent.
      */
     /**
+     * Parameter-order coverage for a controller that is NOT in `CONTROLLER_ACL_MAP`,
+     * so the ACL gate is a no-op and dispatch reaches the mocked `i_once()` file-load
+     * path. Verifies that the controller name is extracted regardless of parameter
+     * order (the resulting `NotFoundHttpException` carries the derived class name).
+     *
      * @param array<string, string> $params
      */
-    #[DataProvider('parameterOrderProvider')]
+    #[DataProvider('parameterOrderNonMappedControllerProvider')]
     #[Test]
     public function testDispatchExtractsControllerRegardlessOfOrder(array $params): void
     {
-        // Use reflection to test the parameter extraction logic without
-        // actually loading controller files or requiring authentication
-        $controller = $this->createPartialMock(\Controller::class, ['i_once']);
+        // checkControllerAcl is stubbed because this test verifies routing
+        // (order-independent controller extraction), not authorization —
+        // controllers now carry ACL requirements and would otherwise deny
+        // before the routing logic under test is reached.
+        $controller = $this->createPartialMock(\Controller::class, ['i_once', 'checkControllerAcl']);
+        $controller->method('i_once')->willReturn(false);
+        $controller->method('checkControllerAcl');
 
-        // Mock i_once to return false (simulates controller file not found)
-        // This lets us verify the extracted controller name without side effects
+        $this->expectException(NotFoundHttpException::class);
+        $this->expectExceptionMessage('X12Partner');
+
+        $controller->dispatch($params);
+    }
+
+    /**
+     * Parameter-order coverage for a controller that IS in `CONTROLLER_ACL_MAP`,
+     * so the ACL gate fires before the file-load path. Verifies that the controller
+     * name is extracted regardless of parameter order (the resulting
+     * `AccessDeniedHttpException` carries the display name from the ACL map).
+     *
+     * @param array<string, string> $params
+     */
+    #[DataProvider('parameterOrderAclMappedControllerProvider')]
+    #[Test]
+    public function testDispatchExtractsAclMappedControllerRegardlessOfOrder(array $params): void
+    {
+        $controller = $this->createPartialMock(\Controller::class, ['i_once']);
         $controller->method('i_once')->willReturn(false);
 
-        // The exception message should reference 'Document' controller regardless of param order
-        $this->expectException(NotFoundHttpException::class);
+        $this->expectException(AccessDeniedHttpException::class);
         $this->expectExceptionMessage('Document');
 
         $controller->dispatch($params);
     }
 
     /**
-     * Provide parameter arrays with controller/action in different positions.
+     * Parameter arrays with an unmapped controller in different positions.
      *
      * @return array<string, array{array<string, string>}>
+     *
+     * @codeCoverageIgnore Data providers run before coverage instrumentation starts.
      */
-    public static function parameterOrderProvider(): array
+    public static function parameterOrderNonMappedControllerProvider(): array
+    {
+        return [
+            'controller first' => [
+                ['controller' => 'x12_partner', 'action' => 'list', 'patient_id' => '1'],
+            ],
+            'action first' => [
+                ['action' => 'list', 'controller' => 'x12_partner', 'patient_id' => '1'],
+            ],
+            'patient_id first' => [
+                ['patient_id' => '1', 'controller' => 'x12_partner', 'action' => 'list'],
+            ],
+            'controller last' => [
+                ['patient_id' => '1', 'action' => 'list', 'controller' => 'x12_partner'],
+            ],
+            'mixed order' => [
+                ['action' => 'view', 'patient_id' => '1', 'doc_id' => '123', 'controller' => 'x12_partner'],
+            ],
+        ];
+    }
+
+    /**
+     * Parameter arrays with an ACL-mapped controller in different positions.
+     *
+     * @return array<string, array{array<string, string>}>
+     *
+     * @codeCoverageIgnore Data providers run before coverage instrumentation starts.
+     */
+    public static function parameterOrderAclMappedControllerProvider(): array
     {
         return [
             'controller first' => [
@@ -134,8 +190,9 @@ class ControllerRoutingTest extends TestCase
     #[Test]
     public function testDispatchMovesProcessParamToPost(): void
     {
-        $controller = $this->createPartialMock(\Controller::class, ['i_once']);
+        $controller = $this->createPartialMock(\Controller::class, ['i_once', 'checkControllerAcl']);
         $controller->method('i_once')->willReturn(false);
+        $controller->method('checkControllerAcl');
 
         $params = ['controller' => 'pharmacy', 'action' => 'list', 'process' => 'true'];
         $_GET['process'] = 'true';
@@ -184,5 +241,52 @@ class ControllerRoutingTest extends TestCase
         // Verify explicit 'action=list' is preserved as 'sub_action'
         $this->assertArrayHasKey('sub_action', $dispatchParams);
         $this->assertSame('list', $dispatchParams['sub_action']);
+    }
+
+    /**
+     * Controller extends Smarty, and Smarty's __call catches any undefined
+     * method call. This makes is_callable() return true for every method
+     * name on a Controller instance, even methods that don't actually exist.
+     *
+     * The methodExists() guard must combine is_callable() with method_exists()
+     * to distinguish genuinely-defined methods from phantom calls that would
+     * otherwise be dispatched into Smarty's extension handler (which throws
+     * "undefined extension class Smarty_Internal_Method_*" errors).
+     */
+    #[Test]
+    public function testMethodExistsGuardsAgainstSmartyPhantomMethods(): void
+    {
+        $smartyDescendant = new class extends \Controller {
+        };
+
+        $dispatcher = new \Controller();
+
+        $methodExists = new \ReflectionMethod(\Controller::class, 'methodExists');
+
+        // Document the trap: is_callable() alone returns true for any method
+        // name on a Smarty descendant because Smarty's __call catches all calls.
+        // PHPStan can't model __call, so it concludes statically that
+        // is_callable() must be false — which is exactly the runtime trap
+        // this test documents and methodExists() guards against.
+        /** @phpstan-ignore-next-line function.impossibleType */
+        $isCallable = is_callable([$smartyDescendant, 'nonexistent_phantom_method']);
+        /** @phpstan-ignore-next-line method.impossibleType */
+        $this->assertTrue(
+            $isCallable,
+            'Expected is_callable() to return true due to Smarty __call ' .
+            '(this assertion documents the trap that methodExists() guards against).'
+        );
+
+        // The guard must return false for phantom methods that only __call catches.
+        $this->assertFalse(
+            $methodExists->invoke($dispatcher, $smartyDescendant, 'nonexistent_phantom_method'),
+            'methodExists() must return false for phantom methods caught only by __call.'
+        );
+
+        // Positive case: a genuinely-defined method should return true.
+        $this->assertTrue(
+            $methodExists->invoke($dispatcher, $smartyDescendant, 'process_action'),
+            'methodExists() must return true for genuinely-defined methods.'
+        );
     }
 }

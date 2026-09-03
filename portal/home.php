@@ -20,7 +20,6 @@ use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Session\SessionUtil;
 use OpenEMR\Common\Session\SessionWrapperFactory;
-use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\PatientPortal\AppointmentFilterEvent;
 use OpenEMR\Events\PatientPortal\RenderEvent;
@@ -118,10 +117,11 @@ if ($appts) {
     foreach ($appts as $row) {
         $status_title = getListItemTitle('apptstat', $row['pc_apptstatus']);
         $count++;
+        $startTime = (string) $row['pc_startTime'];
         $dayname = xl(date('l', strtotime((string) $row['pc_eventDate'])));
         $dispampm = 'am';
-        $disphour = (int)substr((string) $row['pc_startTime'], 0, 2);
-        $dispmin = substr((string) $row['pc_startTime'], 3, 2);
+        $disphour = (int)substr($startTime, 0, 2);
+        $dispmin = substr($startTime, 3, 2);
         if ($disphour >= 12) {
             $dispampm = 'pm';
             if ($disphour > 12) {
@@ -152,10 +152,11 @@ if ($past_appts) {
     foreach ($past_appts as $row) {
         $status_title = getListItemTitle('apptstat', $row['pc_apptstatus']);
         $pastCount++;
+        $startTime = (string) $row['pc_startTime'];
         $dayname = xl(date('l', strtotime((string) $row['pc_eventDate'])));
         $dispampm = 'am';
-        $disphour = (int)substr((string) $row['pc_startTime'], 0, 2);
-        $dispmin = substr((string) $row['pc_startTime'], 3, 2);
+        $disphour = (int)substr($startTime, 0, 2);
+        $dispmin = substr($startTime, 3, 2);
         if ($disphour >= 12) {
             $dispampm = 'pm';
             if ($disphour > 12) {
@@ -190,7 +191,8 @@ function collectStyles(): array
         if (
             $tfname == 'style_blue.css' ||
             $tfname == 'style_pdf.css' ||
-            !preg_match("/^" . 'style_' . ".*\.css$/", $tfname)
+            !str_starts_with($tfname, 'style_') ||
+            !str_ends_with($tfname, '.css')
         ) {
             continue;
         }
@@ -340,7 +342,7 @@ $styleArray = collectStyles();
 $isTelemetryAllowed = (new TelemetryService())->isTelemetryEnabled();
 
 // Render Home Page
-$twig = (new TwigContainer('', $globalsBag->getKernel()))->getTwig();
+$twig = ServiceContainer::getTwig();
 try {
     $healthSnapshot = [
         'immunizationRecords' => $immunRecords,
@@ -358,6 +360,7 @@ try {
         'newcnt' => $newcnt,
         'menuLogo' => $logoService->getLogo('portal/menu/primary'),
         'allow_portal_appointments' => $globalsBag->getBoolean('allow_portal_appointments'),
+        'viewOnlyAppointments' => $globalsBag->getBoolean('view_only_portal_appointments'),
         'web_root' => $globalsBag->get('web_root'),
         'payment_gateway' => $globalsBag->get('payment_gateway'),
         'gateway_mode_production' => $globalsBag->getBoolean('gateway_mode_production'),

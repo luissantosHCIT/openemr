@@ -176,15 +176,13 @@ class FHIRVisionPrescriptionPrism extends FHIRBackboneElement implements \JsonSe
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<VisionPrescriptionPrism xmlns="http://hl7.org/fhir"></VisionPrescriptionPrism>');
-        }
+        $sxe ??= new \SimpleXMLElement('<VisionPrescriptionPrism xmlns="http://hl7.org/fhir"></VisionPrescriptionPrism>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->amount)) {
             $this->amount->xmlSerialize(true, $sxe->addChild('amount'));

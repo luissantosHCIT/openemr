@@ -16,13 +16,9 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-require_once(__DIR__ . "/../../globals.php");
-require_once "$srcdir/user.inc.php";
-require_once "$srcdir/options.inc.php";
-
+use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
-use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\UserInterface\PageHeadingRenderEvent;
@@ -30,6 +26,10 @@ use OpenEMR\Menu\BaseMenuItem;
 use OpenEMR\OeUI\OemrUI;
 use OpenEMR\Services\PatientService;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+
+require_once(__DIR__ . "/../../globals.php");
+
+require_once OEGlobalsBag::getInstance()->getSrcDir() . "/options.inc.php";
 
 $uspfx = 'patient_finder.'; //substr(__FILE__, strlen($webserver_root)) . '.';
 $patient_finder_exact_search = prevSetting($uspfx, 'patient_finder_exact_search', 'patient_finder_exact_search', ' ');
@@ -285,7 +285,7 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
             <?php // Bring in the translations ?>
             <?php $translationsDatatablesOverride = ['search' => (xla('Search all columns') . ':')]; ?>
             <?php $translationsDatatablesOverride = ['processing' => $loading]; ?>
-            <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/datatables-net.js.php'); ?>
+            <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/datatables-net.js.php'); ?>
         });
 
 
@@ -382,7 +382,7 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
         $event->setPrimaryMenuItem(new BaseMenuItem([
             'displayText' => xl('Add New Patient'),
             'linkClassList' => ['btn-add'],
-            'id' => OEGlobalsBag::getInstance()->get('webroot') . '/interface/new/new.php',
+            'id' => OEGlobalsBag::getInstance()->getWebRoot() . '/interface/new/new.php',
             'acl' => ['patients', 'demo', ['write', 'addonly']]
         ]));
     });
@@ -472,8 +472,7 @@ $templateVars = [
     'rp' => $rp['rp'],
 ];
 
-$twig = new TwigContainer(null, OEGlobalsBag::getInstance()->getKernel());
-$t = $twig->getTwig();
+$t = ServiceContainer::getTwig();
 echo $t->render('patient_finder/finder.html.twig', $templateVars);
 
 ?>

@@ -135,16 +135,15 @@ define('_SETTING_NOTIFY_EMAIL', pnModGetVar(__POSTCALENDAR__, 'pcNotifyEmail'));
 //  Require and Setup utility classes and functions
 //=========================================================================
 define('DATE_CALC_BEGIN_WEEKDAY', _SETTING_FIRST_DAY_WEEK);
+$pcDir = pnVarPrepForOS(pnModGetInfo(pnModGetIDFromName(__POSTCALENDAR__))['directory']);
 require_once("modules/$pcDir/pnincludes/Date/Calc.php");
 //=========================================================================
 //  grab the global language file
 //=========================================================================
 require_once("modules/$pcDir/pnlang/eng/global.php");
 
-//=========================================================================
-//  Setup Smarty defines
-//=========================================================================
-require_once("modules/$pcDir/pcSmarty.class.php");
+// (legacy `require_once("modules/$pcDir/pcSmarty.class.php")` removed —
+//  the Twig conversion deleted pcSmarty along with library/smarty_legacy/.)
 //=========================================================================
 //  utility functions for postcalendar
 //=========================================================================
@@ -198,17 +197,11 @@ function postcalendar_getDate($format = 'Ymd')
             $lastcaldate = $session->get('lastcaldate');
             $time = !empty($lastcaldate) ? strtotime((string) $lastcaldate) : time();
 
-            if (!isset($jumpday)) {
-                $jumpday   = date('d', $time);
-            }
+            $jumpday ??= date('d', $time);
 
-            if (!isset($jumpmonth)) {
-                $jumpmonth = date('m', $time);
-            }
+            $jumpmonth ??= date('m', $time);
 
-            if (!isset($jumpyear)) {
-                $jumpyear  = date('Y', $time);
-            }
+            $jumpyear ??= date('Y', $time);
         }
 
         // create the correct date string
@@ -401,19 +394,15 @@ function postcalendar_userapi_buildMonthSelect($args)
 {
     extract($args);
     unset($args);
-    if (!isset($pc_month)) {
-        $pc_month = Date_Calc::getMonth();
-    }
+    $pc_month ??= Date_Calc::getMonth();
 
     // create the return object to be inserted into the form
     $output = [];
-    if (!isset($selected)) {
-        $selected = '';
-    }
+    $selected ??= '';
 
     for ($c = 0,$i = 1; $i <= 12; $i++,$c++) {
         if ($selected) {
-            $sel = $selected == $i ? true : false;
+            $sel = $selected == $i;
         } elseif ($i == $pc_month) {
             $sel = true;
         } else {
@@ -435,19 +424,15 @@ function postcalendar_userapi_buildDaySelect($args)
 {
     extract($args);
     unset($args);
-    if (!isset($pc_day)) {
-        $pc_day = Date_Calc::getDay();
-    }
+    $pc_day ??= Date_Calc::getDay();
 
     // create the return object to be inserted into the form
     $output = [];
-    if (!isset($selected)) {
-        $selected = '';
-    }
+    $selected ??= '';
 
     for ($c = 0,$i = 1; $i <= 31; $i++,$c++) {
         if ($selected) {
-            $sel = $selected == $i ? true : false;
+            $sel = $selected == $i;
         } elseif ($i == $pc_day) {
             $sel = true;
         } else {
@@ -469,9 +454,7 @@ function postcalendar_userapi_buildYearSelect($args)
 {
     extract($args);
     unset($args);
-    if (!isset($pc_year)) {
-        $pc_year = date('Y');
-    }
+    $pc_year ??= date('Y');
 
     // create the return object to be inserted into the form
     $output = [];
@@ -479,13 +462,11 @@ function postcalendar_userapi_buildYearSelect($args)
     // maybe this will eventually become a user defined value
     $pc_start_year = date('Y') - 1;
     $pc_end_year = date('Y') + 30;
-    if (!isset($selected)) {
-        $selected = '';
-    }
+    $selected ??= '';
 
     for ($c = 0,$i = $pc_start_year; $i <= $pc_end_year; $i++,$c++) {
         if ($selected) {
-            $sel = $selected == $i ? true : false;
+            $sel = $selected == $i;
         } elseif ($i == $pc_year) {
             $sel = true;
         } else {
@@ -769,7 +750,7 @@ function sort_byTimeD($a, $b)
 }
 /**
  *    pc_clean
- *    @param s string text to clean
+ *    @param mixed $s string text to clean
  *    @return string cleaned up text
  */
 function pc_clean($s)

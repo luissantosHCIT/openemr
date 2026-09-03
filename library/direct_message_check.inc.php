@@ -24,9 +24,7 @@
  * @link    https://www.open-emr.org
  */
 
-require_once(__DIR__ . "/pnotes.inc.php");
 require_once(__DIR__ . "/documents.php");
-require_once(__DIR__ . "/gprelations.inc.php");
 
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Logging\EventAuditLogger;
@@ -50,13 +48,13 @@ function phimail_connect(&$phimail_error)
     $phimail_server = @parse_url(OEGlobalsBag::getInstance()->getString('phimail_server_address'));
     $phimail_username = OEGlobalsBag::getInstance()->getString('phimail_username');
     $cryptoGen = ServiceContainer::getCrypto();
-    $phimail_password = $cryptoGen->decryptStandard(OEGlobalsBag::getInstance()->getString('phimail_password'));
+    $phimail_password = $cryptoGen->decryptFromDatabase(OEGlobalsBag::getInstance()->getString('phimail_password'));
 
     // if test mode is disabled we use the production cert, otherwise we use the test certificate.
     if (OEGlobalsBag::getInstance()->has('phimail_testmode_disabled') && OEGlobalsBag::getInstance()->getBoolean('phimail_testmode_disabled')) {
-        $phimail_cafile = OEGlobalsBag::getInstance()->get('fileroot') . '/public/certs/phimail/phimail_server.pem';
+        $phimail_cafile = OEGlobalsBag::getInstance()->getProjectDir() . '/public/certs/phimail/phimail_server.pem';
     } else {
-        $phimail_cafile = OEGlobalsBag::getInstance()->get('fileroot') . '/public/certs/phimail/EMRDirectTestCA.pem';
+        $phimail_cafile = OEGlobalsBag::getInstance()->getProjectDir() . '/public/certs/phimail/EMRDirectTestCA.pem';
         ServiceContainer::getLogger()->debug("running phimail_connect in test mode.  This should not be used for production", ['ca' => $phimail_cafile, 'testmode' => OEGlobalsBag::getInstance()->getBoolean('phimail_testmode_disabled')]);
     }
     if (!file_exists($phimail_cafile)) {
@@ -158,7 +156,7 @@ function phimail_check(): void
 {
     $phimail_username = OEGlobalsBag::getInstance()->getString('phimail_username');
     $cryptoGen = ServiceContainer::getCrypto();
-    $phimail_password = $cryptoGen->decryptStandard(OEGlobalsBag::getInstance()->getString('phimail_password'));
+    $phimail_password = $cryptoGen->decryptFromDatabase(OEGlobalsBag::getInstance()->getString('phimail_password'));
 
     if (!($notifyUsername = OEGlobalsBag::getInstance()->getString('phimail_notify'))) {
         $notifyUsername = 'admin'; //fallback
@@ -222,9 +220,7 @@ function phimail_check(): void
 
                 phimail_logit($success, $ret, $msg['patient_id']);
 
-                if (!isset($val[3])) {
-                    $val[3] = "";
-                }
+                $val[3] ??= "";
 
                 $sql = "UPDATE direct_message_log SET status=?, status_ts=NOW(), status_info=? WHERE msg_type='S' AND msg_id=?";
                 $res = sqlStatementNoLog($sql, [$status, $val[3], $val[1]]);
@@ -620,7 +616,7 @@ function phimail_allow_document_mimetype(IsAcceptedFileFilterEvent $event)
 /**
  * Registers an attachment or non-text message file using the existing Document structure
  *
- * @return Array(doc_id,URL) of the file as stored in documents table, false = failure
+ * @return Array of the file as stored in documents table, false = failure
  */
 function phimail_store($name, $mime_type, $fn)
 {

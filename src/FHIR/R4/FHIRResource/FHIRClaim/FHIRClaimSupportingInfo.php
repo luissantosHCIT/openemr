@@ -443,15 +443,13 @@ class FHIRClaimSupportingInfo extends FHIRBackboneElement implements \JsonSerial
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ClaimSupportingInfo xmlns="http://hl7.org/fhir"></ClaimSupportingInfo>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ClaimSupportingInfo xmlns="http://hl7.org/fhir"></ClaimSupportingInfo>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->sequence)) {
             $this->sequence->xmlSerialize(true, $sxe->addChild('sequence'));

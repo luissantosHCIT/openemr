@@ -75,9 +75,9 @@ class Header
      * The above example will render `<script>` tags and `<link>` tag which
      * bring in the requested assets from config.yaml
      *
-     * @param array|string $assets Asset(s) to include
-     * @param boolean $echoOutput - if true then echo
-     *                              if false then return string
+     * @param string[]|string $assets Asset(s) to include
+     * @param bool            $echoOutput If true then echo
+     *                                    If false then return string
      * @throws ParseException If unable to parse the config file
      * @return string
      */
@@ -93,7 +93,7 @@ class Header
         $output .= "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\" />\n";
         // Favicon
         $output .= "<link rel=\"shortcut icon\" href=\"$favicon\" />\n";
-        $output .= self::setupAssets($assets, true, false);
+        $output .= self::setupAssets(is_array($assets) ? $assets : [$assets], true);
 
         // we need to grab the script
         $scriptName = $_SERVER['SCRIPT_NAME'];
@@ -141,27 +141,16 @@ class Header
 
     /**
      * Can call this function directly rather than using above setupHeader function
-     *  if do not want to include the autoloaded assets.
+     * if do not want to include the autoloaded assets.
      *
-     * @param array $assets Asset(s) to include
-     * @param boolean $headerMode - if true, then include autoloaded assets
-     *                              if false, then do not include autoloaded assets
-     * @param boolean $echoOutput - if true then echo
-     *                              if false then return string
+     * @param string[] $assets     Assets to include
+     * @param bool     $headerMode If true, then include autoloaded assets
+     *                             If false, then do not include autoloaded assets
      */
-    public static function setupAssets($assets = [], $headerMode = false, $echoOutput = true)
+    public static function setupAssets(array $assets = [], bool $headerMode = false): string
     {
-        self::$isHeader = $headerMode ? true : false;
-
-        try {
-            if ($echoOutput) {
-                echo self::includeAsset($assets);
-            } else {
-                return self::includeAsset($assets);
-            }
-        } catch (\InvalidArgumentException $e) {
-            error_log(errorLogEscape($e->getMessage()));
-        }
+        self::$isHeader = $headerMode;
+        return self::includeAsset($assets);
     }
 
     /**
@@ -173,30 +162,28 @@ class Header
      *
      * This is a private function, use Header::setupHeader() instead
      *
-     * @param array|string $assets Asset(s) to include
+     * @param string[] $assets Assets to include
      * @throws ParseException If unable to parse the config file
      * @return string
      */
-    private static function includeAsset($assets = [])
+    private static function includeAsset(array $assets = []): string
     {
-
-        if (is_string($assets)) {
-            $assets = [$assets];
-        }
-
         // Filter out any empty strings in case assets array contains them
-        $assets = array_filter($assets, static fn ($asset): bool => is_string($asset) && trim($asset) !== '');
+        $assets = array_filter($assets, is_string(...));
+        $assets = array_map(trim(...), $assets);
+        $assets = array_filter($assets, fn ($asset): bool => $asset !== '');
 
         // @TODO Hard coded the path to the config file, not good RD 2017-05-27
-        $map = self::readConfigFile(OEGlobalsBag::getInstance()->get('fileroot') . "/config/config.yaml");
+        $projectDir = OEGlobalsBag::getInstance()->getKernel()->getProjectDir();
+        $map = self::readConfigFile($projectDir . "/config/config.yaml");
         self::$scripts = [];
         self::$links = [];
 
         self::parseConfigFile($map, $assets);
 
         /* adding custom assets in addition */
-        if (is_file(OEGlobalsBag::getInstance()->get('fileroot') . "/custom/assets/custom.yaml")) {
-            $customMap = self::readConfigFile(OEGlobalsBag::getInstance()->get('fileroot') . "/custom/assets/custom.yaml");
+        if (is_file($projectDir . "/custom/assets/custom.yaml")) {
+            $customMap = self::readConfigFile($projectDir . "/custom/assets/custom.yaml");
             self::parseConfigFile($customMap, $assets);
         }
 
@@ -279,7 +266,7 @@ class Header
      * Build an html element from config options.
      *
      * @var array $opts Options
-     * @var boolean $alreadyBuilt - This means the path with cache busting segment has already been built
+     * @var bool $alreadyBuilt - This means the path with cache busting segment has already been built
      * @return array Array with `scripts` and `links` keys which contain arrays of elements
      */
     private static function buildAsset($opts = [], $alreadyBuilt = false)
@@ -437,6 +424,10 @@ class Header
     private static function getCurrentFile()
     {
         //remove web root and query string
-        return str_replace(OEGlobalsBag::getInstance()->get('webroot') . '/', '', strtok($_SERVER["REQUEST_URI"], '?'));
+        $uriPath = strtok($_SERVER["REQUEST_URI"], '?') ?: '';
+        $webRoot = OEGlobalsBag::getInstance()->getKernel()->getWebRoot();
+        return $webRoot !== ''
+            ? str_replace($webRoot . '/', '', $uriPath)
+            : ltrim($uriPath, '/');
     }
 }

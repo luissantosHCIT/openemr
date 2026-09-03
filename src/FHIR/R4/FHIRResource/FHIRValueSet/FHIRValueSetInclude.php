@@ -299,15 +299,13 @@ class FHIRValueSetInclude extends FHIRBackboneElement implements \JsonSerializab
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ValueSetInclude xmlns="http://hl7.org/fhir"></ValueSetInclude>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ValueSetInclude xmlns="http://hl7.org/fhir"></ValueSetInclude>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->system)) {
             $this->system->xmlSerialize(true, $sxe->addChild('system'));

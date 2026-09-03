@@ -138,15 +138,13 @@ class FHIRDaysOfWeek extends FHIRElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<DaysOfWeek xmlns="http://hl7.org/fhir"></DaysOfWeek>');
-        }
+        $sxe ??= new \SimpleXMLElement('<DaysOfWeek xmlns="http://hl7.org/fhir"></DaysOfWeek>');
         $sxe->addAttribute('value', $this->value);
         if ($returnSXE) {
             return $sxe;

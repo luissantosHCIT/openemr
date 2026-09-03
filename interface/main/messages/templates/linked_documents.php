@@ -21,6 +21,7 @@ use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Services\Cda\CdaValidateDocumentObject;
+use OpenEMR\Services\Utils\DateFormatterUtils;
 
 // This file is a sub-template included by messages.php. $noteid is a required
 // parameter from the parent context. Return silently if it is missing — this
@@ -42,11 +43,12 @@ $enc_list = [];
 if (!empty($prow)) {
     $results = QueryUtils::fetchRecords("SELECT fe.encounter,fe.date,openemr_postcalendar_categories.pc_catname FROM form_encounter AS fe " .
         " LEFT JOIN openemr_postcalendar_categories ON fe.pc_catid=openemr_postcalendar_categories.pc_catid  WHERE fe.pid = ? ORDER BY fe.date DESC", [$prow['pid']]);
-    foreach ($enc_list as $row) {
+    foreach ($results as $row) {
+        $ymd = DateFormatterUtils::dbDateToYmd($row['date']);
         $enc_list[] = [
             'encounter' => $row['encounter'],
             'pc_catname' => xl_appt_category($row['pc_catname']),
-            'date' => oeFormatShortDate(date("Y-m-d", strtotime($row['date'])))
+            'date' => $ymd !== null ? oeFormatShortDate($ymd) : '',
         ];
     }
 }
@@ -166,7 +168,7 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
 <script>
     function previewCCDADocument(event, documentId) {
         event.preventDefault();
-        let url = "<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>" + "/interface/modules/zend_modules/public/encountermanager/previewDocument?docId=" + documentId;
+        let url = "<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>" + "/interface/modules/zend_modules/public/encountermanager/previewDocument?docId=" + documentId;
         try {
             window.open(url);
         }
@@ -186,7 +188,7 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
 
             // now we need to make an ajax async request to the server with the document id
             let docId = validateRecord.dataset['doc'];
-            let url = "<?php echo OEGlobalsBag::getInstance()->get('webroot') . "/library/ajax/messages/validate_messages_document_ajax.php?csrf=\" + " . js_url(CsrfUtils::collectCsrfToken(session: $session)); ?>
+            let url = "<?php echo OEGlobalsBag::getInstance()->getWebRoot() . "/library/ajax/messages/validate_messages_document_ajax.php?csrf=\" + " . js_url(CsrfUtils::collectCsrfToken(session: $session)); ?>
 
             window.fetch(url + "&doc=" + encodeURIComponent(docId) )
                 .then(function(result) {
@@ -240,7 +242,7 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
         Count = 0;
         <?php
         if (!empty($enc_list)) {
-            foreach ($row as $enc_list) {
+            foreach ($enc_list as $row) {
                 ?>
         EncounterIdArray[Count] = '<?php echo attr($row['encounter']); ?>';
         EncounterDateArray[Count] = '<?php echo attr($row['date']); ?>';
@@ -253,7 +255,7 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
         top.restoreSession();
         $.ajax({
             type: 'get',
-            url: '<?php echo OEGlobalsBag::getInstance()->get('webroot') . "/library/ajax/set_pt.php";?>',
+            url: '<?php echo OEGlobalsBag::getInstance()->getWebRoot() . "/library/ajax/set_pt.php";?>',
             data: {
                 set_pid: pid,
                 csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken(session: $session)); ?>

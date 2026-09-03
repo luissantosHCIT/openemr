@@ -8,7 +8,7 @@
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @author    Michael A. Smith <michael@opencoreemr.com>
  * @copyright Copyright (c) 2024 Brady Miller <brady.g.miller@gmail.com>
- * @copyright Copyright (c) 2026 OpenCoreEMR Inc. <https://opencoreemr.com/>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -100,10 +100,8 @@ class HhMainMenuLinksTest extends PantherTestCase
             'Admin -> Forms -> Layouts menu link' => ['Admin||Forms||Layouts', 'Layout Editor'],
             'Admin -> Forms -> Lists menu link' => ['Admin||Forms||Lists', 'List Editor'],
             'Admin -> Documents -> Document Templates menu link' => ['Admin||Documents||Document Templates', 'Document Template Management'],
-            'Admin -> System -> Backup menu link' => ['Admin||System||Backup', 'Backup'],
             'Admin -> System -> Files menu link' => ['Admin||System||Files', 'File management'],
             'Admin -> System -> Language menu link' => ['Admin||System||Language', 'Multi Language Tool'],
-            'Admin -> System -> Certificates menu link' => ['Admin||System||Certificates', 'SSL Certificate Administration'],
             'Admin -> System -> Logs menu link' => ['Admin||System||Logs', 'Logs Viewer'],
             'Admin -> System -> Audit Log Tamper menu link' => ['Admin||System||Audit Log Tamper', 'Audit Log Tamper Report'],
             'Admin -> System -> Diagnostics menu link' => ['Admin||System||Diagnostics', 'Diagnostics'],

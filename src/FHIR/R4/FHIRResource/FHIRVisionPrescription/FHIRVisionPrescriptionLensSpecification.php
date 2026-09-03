@@ -578,15 +578,13 @@ class FHIRVisionPrescriptionLensSpecification extends FHIRBackboneElement implem
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<VisionPrescriptionLensSpecification xmlns="http://hl7.org/fhir"></VisionPrescriptionLensSpecification>');
-        }
+        $sxe ??= new \SimpleXMLElement('<VisionPrescriptionLensSpecification xmlns="http://hl7.org/fhir"></VisionPrescriptionLensSpecification>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->product)) {
             $this->product->xmlSerialize(true, $sxe->addChild('product'));

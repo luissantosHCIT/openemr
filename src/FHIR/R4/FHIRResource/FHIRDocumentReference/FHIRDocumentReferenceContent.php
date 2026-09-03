@@ -176,15 +176,13 @@ class FHIRDocumentReferenceContent extends FHIRBackboneElement implements \JsonS
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<DocumentReferenceContent xmlns="http://hl7.org/fhir"></DocumentReferenceContent>');
-        }
+        $sxe ??= new \SimpleXMLElement('<DocumentReferenceContent xmlns="http://hl7.org/fhir"></DocumentReferenceContent>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->attachment)) {
             $this->attachment->xmlSerialize(true, $sxe->addChild('attachment'));

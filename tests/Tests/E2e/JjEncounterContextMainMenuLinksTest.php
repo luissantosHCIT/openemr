@@ -8,7 +8,7 @@
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @author    Michael A. Smith <michael@opencoreemr.com>
  * @copyright Copyright (c) 2024 Brady Miller <brady.g.miller@gmail.com>
- * @copyright Copyright (c) 2026 OpenCoreEMR Inc. <https://opencoreemr.com/>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -47,13 +47,9 @@ class JjEncounterContextMainMenuLinksTest extends PantherTestCase
             $this->markTestSkipped('Test skipped because this environment does not support high enough nodejs version.');
         }
 
-        if (is_null($loading)) {
-            $loading = 'Loading';
-        }
+        $loading ??= 'Loading';
 
-        if (is_null($looseTabTitle)) {
-            $looseTabTitle = false;
-        }
+        $looseTabTitle ??= false;
 
         $this->base();
         try {

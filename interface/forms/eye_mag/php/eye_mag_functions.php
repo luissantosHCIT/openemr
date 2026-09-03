@@ -8,7 +8,9 @@
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Ray Magauran <rmagauran@gmail.com>
+ * @author    Michael A. Smith <michael@opencoreemr.com>
  * @copyright Copyright (c) 2016- Raymond Magauran <rmagauran@gmail.com>
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -16,6 +18,10 @@ use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Forms\EyeMag\CopyForward;
+use OpenEMR\Forms\EyeMag\CopyMode;
+use OpenEMR\Forms\EyeMag\PmsfhPanel;
+use OpenEMR\Forms\EyeMag\Zone;
 use OpenEMR\Services\FacilityService;
 
 $facilityService = new FacilityService();
@@ -34,6 +40,8 @@ function priors_select($zone, $orig_id, $id_to_show, $pid, $type = 'text')
     global $priors;
     global $form_id;
     global $earlier;
+    $output = '';
+    $i = 0;
 
     if ($type == "canvas") {
         $zone .= "_canvas";
@@ -169,7 +177,7 @@ function priors_select($zone, $orig_id, $id_to_show, $pid, $type = 'text')
                 id="PRIOR_' . attr($zone) . '"
                 style="padding:0 0;font-size:1.2em;"
                 class="PRIORS">
-                ' . ($output ?? '') . '
+                ' . $output . '
         </select>
                   &nbsp;
         <span onclick=\'$("#PRIOR_' . attr($zone) . '").val("' . attr($priors[$later]['id']) . '").trigger("change");\'
@@ -236,6 +244,40 @@ function display_PRIOR_section($zone, $orig_id, $id_to_show, $pid, $report = '0'
                     form_eye_base.id=?";
     $result = sqlQuery($query, [$pid,$id_to_show]);
     @extract($result);
+    $ACT ??= null; $ACT10CCDIST ??= null; $ACT10CCNEAR ??= null; $ACT10SCDIST ??= null;
+    $ACT10SCNEAR ??= null; $ACT11CCDIST ??= null; $ACT11CCNEAR ??= null; $ACT11SCDIST ??= null;
+    $ACT11SCNEAR ??= null; $ACT1CCDIST ??= null; $ACT1CCNEAR ??= null; $ACT1SCDIST ??= null;
+    $ACT1SCNEAR ??= null; $ACT2CCDIST ??= null; $ACT2CCNEAR ??= null; $ACT2SCDIST ??= null;
+    $ACT2SCNEAR ??= null; $ACT3CCDIST ??= null; $ACT3CCNEAR ??= null; $ACT3SCDIST ??= null;
+    $ACT3SCNEAR ??= null; $ACT4CCDIST ??= null; $ACT4CCNEAR ??= null; $ACT4SCDIST ??= null;
+    $ACT4SCNEAR ??= null; $ACT5CCDIST ??= null; $ACT5CCNEAR ??= null; $ACT5SCDIST ??= null;
+    $ACT5SCNEAR ??= null; $ACT6CCDIST ??= null; $ACT6CCNEAR ??= null; $ACT6SCDIST ??= null;
+    $ACT6SCNEAR ??= null; $ACT7CCDIST ??= null; $ACT7CCNEAR ??= null; $ACT7SCDIST ??= null;
+    $ACT7SCNEAR ??= null; $ACT8CCDIST ??= null; $ACT8CCNEAR ??= null; $ACT8SCDIST ??= null;
+    $ACT8SCNEAR ??= null; $ACT9CCDIST ??= null; $ACT9CCNEAR ??= null; $ACT9SCDIST ??= null;
+    $ACT9SCNEAR ??= null; $ANTSEG_COMMENTS ??= null; $ATROPINE ??= null; $CACCDIST ??= null;
+    $CACCNEAR ??= null; $CYCLOGYL ??= null; $CYCLOMYDRIL ??= null; $DACCDIST ??= null; $DACCNEAR ??= null;
+    $DIL_MEDS ??= null; $EXT_COMMENTS ??= null; $HERTELBASE ??= null; $LADNEXA ??= null; $LBROW ??= null;
+    $LCAROTID ??= null; $LCNV ??= null; $LCNVII ??= null; $LLF ??= null; $LLL ??= null; $LMCT ??= null;
+    $LMRD ??= null; $LTEMPART ??= null; $LUL ??= null; $LVFISSURE ??= null; $MOTILITYNORMAL ??= null;
+    $MOTILITY_LI ??= null; $MOTILITY_LL ??= null; $MOTILITY_LLIO ??= null; $MOTILITY_LLSO ??= null;
+    $MOTILITY_LR ??= null; $MOTILITY_LRIO ??= null; $MOTILITY_LRSO ??= null; $MOTILITY_LS ??= null;
+    $MOTILITY_RI ??= null; $MOTILITY_RL ??= null; $MOTILITY_RLIO ??= null; $MOTILITY_RLSO ??= null;
+    $MOTILITY_RR ??= null; $MOTILITY_RRIO ??= null; $MOTILITY_RRSO ??= null; $MOTILITY_RS ??= null;
+    $NEO25 ??= null; $NEURO_COMMENTS ??= null; $NPC ??= null; $ODAC ??= null; $ODCMT ??= null;
+    $ODCOINS ??= null; $ODCOLOR ??= null; $ODCONJ ??= null; $ODCORNEA ??= null; $ODCUP ??= null;
+    $ODDISC ??= null; $ODGONIO ??= null; $ODHERTEL ??= null; $ODIRIS ??= null; $ODKTHICKNESS ??= null;
+    $ODLENS ??= null; $ODMACULA ??= null; $ODNPA ??= null; $ODPERIPH ??= null; $ODREDDESAT ??= null;
+    $ODSCHIRMER1 ??= null; $ODSCHIRMER2 ??= null; $ODTBUT ??= null; $ODVESSELS ??= null;
+    $ODVITREOUS ??= null; $OSAC ??= null; $OSCMT ??= null; $OSCOINS ??= null; $OSCOLOR ??= null;
+    $OSCONJ ??= null; $OSCORNEA ??= null; $OSCUP ??= null; $OSDISC ??= null; $OSGONIO ??= null;
+    $OSHERTEL ??= null; $OSIRIS ??= null; $OSKTHICKNESS ??= null; $OSLENS ??= null; $OSMACULA ??= null;
+    $OSNPA ??= null; $OSPERIPH ??= null; $OSREDDESAT ??= null; $OSSCHIRMER1 ??= null; $OSSCHIRMER2 ??= null;
+    $OSTBUT ??= null; $OSVESSELS ??= null; $OSVITREOUS ??= null; $RADNEXA ??= null; $RBROW ??= null;
+    $RCAROTID ??= null; $RCNV ??= null; $RCNVII ??= null; $RETINA_COMMENTS ??= null; $RLF ??= null;
+    $RLL ??= null; $RMCT ??= null; $RMRD ??= null; $RTEMPART ??= null; $RUL ??= null; $RVFISSURE ??= null;
+    $STEREOPSIS ??= null; $TROPICAMIDE ??= null; $VERTFUSAMPS ??= null; $display_PMSFH ??= null;
+    $here ??= null; $i ??= null; $k ??= null; $output ??= null;
     ob_start();
     if ($zone == "REFRACTIONS") {
         //TODO maybe just sql _refraction+acuity
@@ -1589,7 +1631,7 @@ margin: 2px 0 2px 2px;">
  * Function to prepare for sending the PMSFH_panel and PMSFH_right_panel
  * via display_PMSFH('2') and show_PMSFH_panel($PMSFH) respectively,
  * to javascript to display changes to the user.
- * @param associative array $PMSFH if it exists
+ * @param array $PMSFH associative if it exists
  * @return void
  */
 function send_json_values($PMSFH = ""): void
@@ -1622,7 +1664,7 @@ function send_json_values($PMSFH = ""): void
  *  to function at their base level.
  *
  * @param string $pid is the patient identifier
- * @return $PMSFH array, access items as $PMSFH[0]
+ * @return mixed array, access items as $PMSFH[0]
  */
 function build_PMSFH($pid)
 {
@@ -1630,64 +1672,22 @@ function build_PMSFH($pid)
 
     $PMSFH = [];
     $PMSFH['CHRONIC'] = [];
-    //Define the PMSFH array elements as you need them:
-    $PMSFH_labels = ["POH", "POS", "Eye Meds", "PMH", "Surgery", "Medication", "Allergy", "SOCH", "FH", "ROS"];
-    foreach ($PMSFH_labels as $panel_type) {
+    /*
+     *  Each of these panels is one stock ISSUE_TYPE narrowed by a subtype. This
+     *  is an "eye" form: providers would like ophthalmic medical problems listed
+     *  separately, so the ISSUE_TYPE 'medical_problem' is split using subtype
+     *  "eye" -- but it could be "GYN", "ONC", "GU" etc for whoever wants to
+     *  extend this with their own specific "sub"-lists. The same concept covers
+     *  Past Ocular Surgery, Oncology Medications, and so on; add a case to
+     *  PmsfhPanel rather than another branch here.
+     */
+    foreach (PmsfhPanel::cases() as $panel) {
+        $panel_type = $panel->value;
         $PMSFH[$panel_type] = [];
-        $subtype = " and (subtype is NULL or subtype ='' )";
-        $order = "ORDER BY title";
-        if (in_array($panel_type, ["FH", "SOCH", "ROS"])) {
-            /*
-             *  We are going to build SocHx, FH and ROS separately below since they don't feed off of
-             *  the pre-existing ISSUE_TYPE array - so for now do nothing
-             */
-            continue;
-        } elseif ($panel_type == 'POH') {
-            $focusISSUE = "medical_problem"; //openEMR ISSUE_TYPE
-            $subtype = " and subtype ='eye'";
-            /* This is an "eye" form: providers would like ophthalmic medical problems listed separately.
-             * Thus we split the ISSUE_TYPE 'medical_problem' using subtype "eye"
-             * but it could be "GYN", "ONC", "GU" etc - for whoever wants to
-             * extend this for their own specific "sub"-lists.
-             * Similarly, consider Past Ocular Surgery, or Past GYN Surgery, etc for specialty-specific
-             * surgery lists.  They would be subtypes of the ISSUE_TYPE 'surgery'...
-             * eg.
-             *   if ($panel_type =='POS') { //Past Ocular Surgery
-             *   $focusISSUE = "surgery";
-             *   $subtype=" and subtype ='eye'";
-             *   }
-             * The concept is extensible to sub lists for Allergies & Medications too.
-             * eg.
-             *   if ($panel_type =='OncMeds') {
-             *      $focusISSUE = "medication";
-             *      $subtype=" and subtype ='onc'";
-             *   }
-             */
-        } elseif ($panel_type == 'POS') {
-            $focusISSUE = "surgery"; //openEMR ISSUE_TYPE
-            $subtype = " and subtype ='eye'";
-        } elseif ($panel_type == 'PMH') {
-            $focusISSUE = "medical_problem"; //openEMR ISSUE_TYPE
-            $subtype = " and (subtype = '' OR subtype IS NULL)"; //fee_sheet makes subtype=
-        } elseif ($panel_type == 'Surgery') {
-            $focusISSUE = "surgery"; //openEMR ISSUE_TYPE
-            $subtype = "  and (subtype = '' OR subtype IS NULL)";
-            $order = "ORDER BY begdate DESC";
-        } elseif ($panel_type == 'Allergy') {
-            $focusISSUE = "allergy"; //openEMR ISSUE_TYPE
-            $subtype = "";
-        } elseif ($panel_type == 'Medication') {
-            $focusISSUE = "medication"; //openEMR ISSUE_TYPE
-            $subtype = "";
-        } elseif ($panel_type == 'Eye Meds') {
-            $focusISSUE = "medication"; //openEMR ISSUE_TYPE
-            $subtype = "and subtype = 'eye'";// and subtype ='eye' ";
-        }
 
-        $pres = sqlStatement("SELECT * FROM lists WHERE pid = ? AND type = ? " .
-            $subtype . " " . $order, [$pid,$focusISSUE]);
+        $issues = $panel->issuesQuery($pid);
         $row_counter = '0';
-        while ($row = sqlFetchArray($pres)) {
+        foreach (QueryUtils::fetchRecords($issues->sql, $issues->params) as $row) {
             $rowid = $row['id'];
             $disptitle = text(trim((string) $row['title'])) ? text($row['title']) : "[" . xlt("Missing Title") . "]";
             //  look up the diag codes
@@ -1765,6 +1765,16 @@ function build_PMSFH($pid)
             $row_counter++;
         }
     }
+
+    /*
+     *  SocHx, FH and ROS are PMSFH panels too, but they are assembled from the
+     *  history and layout tables rather than from the ISSUE_TYPE array, so they
+     *  have no PmsfhPanel case. Declaring their keys here keeps them in the
+     *  order the form renders them, after the issue-list panels above.
+     */
+    $PMSFH['SOCH'] = [];
+    $PMSFH['FH'] = [];
+    $PMSFH['ROS'] = [];
 
     //Build the SocHx portion of $PMSFH for this patient.
     //$given ="coffee,tobacco,alcohol,sleep_patterns,exercise_patterns,seatbelt_use,counseling,hazardous_activities,recreational_drugs";
@@ -2042,16 +2052,20 @@ function build_PMSFH($pid)
 /**
  *  This function uses the complete PMSFH array for a given patient, including the ROS for this encounter
  *  and returns the PMSFH display square.
- *  @param integer rows is the number of rows you want to display
- *  @param option string view defaults to white on beige, versus right sliding panel (text on beige only).
- *  @param option string min_height to set min height for the row
- *  @return $display_PMSFH HTML pane when PMSFH is expanded to two panes.
+ *  @param int $rows the number of rows you want to display
+ *  @param string $view defaults to white on beige, versus right sliding panel (text on beige only).
+ *  @param string $min_height to set min height for the row
+ *  @return mixed HTML pane when PMSFH is expanded to two panes.
  */
 function display_PMSFH($rows, $view = "pending", $min_height = "min-height:344px;")
 {
     global $PMSFH;
     global $pid;
     global $PMSFH_titles;
+    $count = [];
+    $total_PMSFH = 0;
+    $header1 = '';
+    $display_PMSFH = [];
     if (!($PMFSH ?? '')) {
         $PMSFH = build_PMSFH($pid);
     }
@@ -2104,7 +2118,7 @@ function display_PMSFH($rows, $view = "pending", $min_height = "min-height:344px
     }
 
     $counter = "0";
-    $column_max = round(($total_PMSFH ?? null) / $rows) + 1;
+    $column_max = round($total_PMSFH / $rows) + 1;
     if ($column_max < "25") {
         $column_max = '20';
     }
@@ -2412,7 +2426,7 @@ function display_PMSFH($rows, $view = "pending", $min_height = "min-height:344px
  *  and returns the PMSFH/ROS sliding Right Panel
  *
  *  @param array $PMSFH
- *  @return $right_panel html
+ *  @return mixed html
  */
 function show_PMSFH_panel($PMSFH, $columns = '1')
 {
@@ -2668,6 +2682,8 @@ function show_PMSFH_report($PMSFH): void
 {
     global $pid;
     global $ISSUE_TYPES;
+    $count = [];
+    $total_PMSFH = 0;
 
     //4 panels
     $rows = '4';
@@ -2722,8 +2738,8 @@ function show_PMSFH_report($PMSFH): void
     }
 
     $counter = "0";
-    $column_max = round(($total_PMSFH ?? null) / $rows) ;
-    $panel_size = round(($total_PMSFH ?? null) / $rows) ;
+    $column_max = round($total_PMSFH / $rows) ;
+    $panel_size = round($total_PMSFH / $rows) ;
 
     //<!-- POH -->
     $counter++;
@@ -2986,6 +3002,8 @@ function display_QP($zone, $provider_id)
         return;
     }
 
+    $here = [];
+    $action = '';
     ob_start();
     $query  = "SELECT * FROM list_options where list_id =?  ORDER BY seq";
     $result = sqlStatement($query, ["Eye_QP_" . $zone . "_$provider_id"]);
@@ -3078,7 +3096,7 @@ function display_QP($zone, $provider_id)
     } //end QP section items
     ?>
       <a href="JavaScript:void(0);"
-         onclick="openNewForm('<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/super/edit_list.php?list_id=Eye_QP_<?php echo attr($zone) . "_" . attr($provider_id); ?>','QP Editor');"
+         onclick="openNewForm('<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/super/edit_list.php?list_id=Eye_QP_<?php echo attr($zone) . "_" . attr($provider_id); ?>','QP Editor');"
          title="<?php echo xla('Click here to Edit this Doctor\'s Quick Pick list'); ?>"
          name="provider_todo"
          class="bold black"><i class="closeButton float-right fa fa-pencil-alt fa-fw"></i> </a>
@@ -3195,7 +3213,7 @@ function canvas_select($zone, $encounter, $pid)
  *
  *  If there is already a drawing for this zone in this encounter, it is pulled from
  *  from its stored location:
- *  $GLOBALS['web_root']."/sites/".$session->get('site_id')."/".$form_folder."/".$pid."/".$encounter."/".$side."_".$zone."_VIEW.png?".rand();
+ *  OEGlobalsBag::getInstance()->getWebRoot()."/sites/".$session->get('site_id')."/".$form_folder."/".$pid."/".$encounter."/".$side."_".$zone."_VIEW.png?".rand();
  *
  *  Otherwise a "BASE" image is pulled from the images directory of the form...  Customizable.
  *
@@ -3248,9 +3266,9 @@ function display_draw_section($zone, $encounter, $pid, $side = 'OU', $counter = 
 
                 $sql = "SELECT * from documents where name like ? ORDER by id DESC";
                 $doc = sqlQuery($sql, ["%" . $base_name . "%"]);
-                $base_filetoshow = OEGlobalsBag::getInstance()->get('web_root') . "/interface/forms/" . $form_folder . "/images/" . $side . "_" . $zone . "_BASE.jpg";
+                $base_filetoshow = OEGlobalsBag::getInstance()->getWebRoot() . "/interface/forms/" . $form_folder . "/images/" . $side . "_" . $zone . "_BASE.jpg";
                 if ((($doc['id'] ?? null) > '0')) {
-                    $filetoshow = OEGlobalsBag::getInstance()->get('web_root') . "/controller.php?document&retrieve&patient_id=" . attr($pid) . "&document_id=" . attr($doc['id']);
+                    $filetoshow = OEGlobalsBag::getInstance()->getWebRoot() . "/controller.php?document&retrieve&patient_id=" . attr($pid) . "&document_id=" . attr($doc['id']);
                 } else {
                     //base image.
                     $filetoshow = $base_filetoshow;
@@ -3311,433 +3329,36 @@ function display_draw_section($zone, $encounter, $pid, $side = 'OU', $counter = 
 }
 
 /**
- *  This function returns a JSON object to replace a requested section with copy_forward values (3 input values)
+ *  Echoes the JSON payload the browser applies to today's chart when copying a
+ *  section (or the whole record) forward from a prior encounter.
  *  It will not replace the drawings with older encounter drawings... Not yet anyway.
  *
- * @param string $zone options ALL,EXT,ANTSEG,RETINA,NEURO, EXT_DRAW, ANTSEG_DRAW, RETINA_DRAW, NEURO_DRAW
- * @param string $form_id is the form_eye_*.id where the data to carry forward is located
+ * @param Zone|CopyMode $mode what to copy: a single exam zone, or a whole-form operation
+ * @param string $copy_from is the form_eye_*.id where the data to carry forward is located
  * @param string $pid value = patient id
- * @return void : outputs the ZONE specific HTML for a prior record + widget for the desired zone
+ * @return void : echoes the values of the requested zone as JSON
  */
-function copy_forward($zone, $copy_from, $copy_to, $pid): void
+function copy_forward(Zone|CopyMode $mode, string $copy_from, string $pid): void
 {
-    global $form_id;
-
-    $query = "select  *,form_encounter.date as encounter_date
-
-               from forms,form_encounter,form_eye_base,
-                form_eye_hpi,form_eye_ros,form_eye_vitals,
-                form_eye_acuity,form_eye_refraction,form_eye_biometrics,
-                form_eye_external,form_eye_antseg,form_eye_postseg,
-                form_eye_neuro,form_eye_locking
-                    where
-                    forms.deleted != '1'  and
-                    forms.formdir='eye_mag' and
-                    forms.encounter=form_encounter.encounter and
-                    forms.form_id=form_eye_base.id and
-                    forms.form_id=form_eye_hpi.id and
-                    forms.form_id=form_eye_ros.id and
-                    forms.form_id=form_eye_vitals.id and
-                    forms.form_id=form_eye_acuity.id and
-                    forms.form_id=form_eye_refraction.id and
-                    forms.form_id=form_eye_biometrics.id and
-                    forms.form_id=form_eye_external.id and
-                    forms.form_id=form_eye_antseg.id and
-                    forms.form_id=form_eye_postseg.id and
-                    forms.form_id=form_eye_neuro.id and
-                    forms.form_id=form_eye_locking.id and
-                    forms.pid =? and
-                    forms.form_id =? ";
-
-    $objQuery = sqlQuery($query, [$pid,$copy_from]);
-    if ($zone == "EXT") {
-        $result['RUL'] = $objQuery['RUL'];
-        $result['LUL'] = $objQuery['LUL'];
-        $result['RLL'] = $objQuery['RLL'];
-        $result['LLL'] = $objQuery['LLL'];
-        $result['RBROW'] = $objQuery['RBROW'];
-        $result['LBROW'] = $objQuery['LBROW'];
-        $result['RMCT'] = $objQuery['RMCT'];
-        $result['LMCT'] = $objQuery['LMCT'];
-        $result['RADNEXA'] = $objQuery['RADNEXA'];
-        $result['LADNEXA'] = $objQuery['LADNEXA'];
-        $result['RMRD'] = $objQuery['RMRD'];
-        $result['LMRD'] = $objQuery['LMRD'];
-        $result['RLF'] = $objQuery['RLF'];
-        $result['LLF'] = $objQuery['LLF'];
-        $result['RVFISSURE'] = $objQuery['RVFISSURE'];
-        $result['LVFISSURE'] = $objQuery['LVFISSURE'];
-        $result['RCAROTID'] = $objQuery['RCAROTID'];
-        $result['LCAROTID'] = $objQuery['LCAROTID'];
-        $result['RTEMPART'] = $objQuery['RTEMPART'];
-        $result['LTEMPART'] = $objQuery['LTEMPART'];
-        $result['RCNV'] = $objQuery['RCNV'];
-        $result['LCNV'] = $objQuery['LCNV'];
-        $result['RCNVII'] = $objQuery['RCNVII'];
-        $result['LCNVII'] = $objQuery['LCNVII'];
-        $result['ODSCHIRMER1'] = $objQuery['ODSCHIRMER1'];
-        $result['OSSCHIRMER1'] = $objQuery['OSSCHIRMER1'];
-        $result['ODSCHIRMER2'] = $objQuery['ODSCHIRMER2'];
-        $result['OSSCHIRMER2'] = $objQuery['OSSCHIRMER2'];
-        $result['ODTBUT'] = $objQuery['ODTBUT'];
-        $result['OSTBUT'] = $objQuery['OSTBUT'];
-        $result['OSHERTEL'] = $objQuery['OSHERTEL'];
-        $result['HERTELBASE'] = $objQuery['HERTELBASE'];
-        $result['ODPIC'] = $objQuery['ODPIC'];
-        $result['OSPIC'] = $objQuery['OSPIC'];
-        $result['EXT_COMMENTS'] = $objQuery['EXT_COMMENTS'];
-        $result["json"] = json_encode($result);
-        echo json_encode($result);
-    } elseif ($zone == "ANTSEG") {
-        $result['OSCONJ'] = $objQuery['OSCONJ'];
-        $result['ODCONJ'] = $objQuery['ODCONJ'];
-        $result['ODCORNEA'] = $objQuery['ODCORNEA'];
-        $result['OSCORNEA'] = $objQuery['OSCORNEA'];
-        $result['ODAC'] = $objQuery['ODAC'];
-        $result['OSAC'] = $objQuery['OSAC'];
-        $result['ODLENS'] = $objQuery['ODLENS'];
-        $result['OSLENS'] = $objQuery['OSLENS'];
-        $result['ODIRIS'] = $objQuery['ODIRIS'];
-        $result['OSIRIS'] = $objQuery['OSIRIS'];
-        $result['ODKTHICKNESS'] = $objQuery['ODKTHICKNESS'];
-        $result['OSKTHICKNESS'] = $objQuery['OSKTHICKNESS'];
-        $result['ODGONIO'] = $objQuery['ODGONIO'];
-        $result['OSGONIO'] = $objQuery['OSGONIO'];
-        $result['ODSCHIRMER1'] = $objQuery['ODSCHIRMER1'];
-        $result['OSSCHIRMER1'] = $objQuery['OSSCHIRMER1'];
-        $result['ODSCHIRMER2'] = $objQuery['ODSCHIRMER2'];
-        $result['OSSCHIRMER2'] = $objQuery['OSSCHIRMER2'];
-        $result['ODTBUT'] = $objQuery['ODTBUT'];
-        $result['OSTBUT'] = $objQuery['OSTBUT'];
-        $result['ANTSEG_COMMENTS'] = $objQuery['ANTSEG_COMMENTS'];
-        $result["json"] = json_encode($result);
-        echo json_encode($result);
-    } elseif ($zone == "RETINA") {
-        $result['ODDISC'] = $objQuery['ODDISC'];
-        $result['OSDISC'] = $objQuery['OSDISC'];
-        $result['ODCUP'] = $objQuery['ODCUP'];
-        $result['OSCUP'] = $objQuery['OSCUP'];
-        $result['ODMACULA'] = $objQuery['ODMACULA'];
-        $result['OSMACULA'] = $objQuery['OSMACULA'];
-        $result['ODVESSELS'] = $objQuery['ODVESSELS'];
-        $result['OSVESSELS'] = $objQuery['OSVESSELS'];
-        $result['ODVITREOUS'] = $objQuery['ODVITREOUS'];
-        $result['OSVITREOUS'] = $objQuery['OSVITREOUS'];
-        $result['ODPERIPH'] = $objQuery['ODPERIPH'];
-        $result['OSPERIPH'] = $objQuery['OSPERIPH'];
-        $result['ODDRAWING'] = $objQuery['ODDRAWING'];
-        $result['OSDRAWING'] = $objQuery['OSDRAWING'];
-        $result['ODCMT'] = $objQuery['ODCMT'];
-        $result['OSCMT'] = $objQuery['OSCMT'];
-        $result['RETINA_COMMENTS'] = $objQuery['RETINA_COMMENTS'];
-        $result["json"] = json_encode($result);
-        echo json_encode($result);
-    } elseif ($zone == "NEURO") {
-        $result['ACT'] = $objQuery['ACT'];
-        $result['ACT5CCDIST'] = $objQuery['ACT5CCDIST'];
-        $result['ACT1CCDIST'] = $objQuery['ACT1CCDIST'];
-        $result['ACT2CCDIST'] = $objQuery['ACT2CCDIST'];
-        $result['ACT3CCDIST'] = $objQuery['ACT3CCDIST'];
-        $result['ACT4CCDIST'] = $objQuery['ACT4CCDIST'];
-        $result['ACT6CCDIST'] = $objQuery['ACT6CCDIST'];
-        $result['ACT7CCDIST'] = $objQuery['ACT7CCDIST'];
-        $result['ACT8CCDIST'] = $objQuery['ACT8CCDIST'];
-        $result['ACT9CCDIST'] = $objQuery['ACT9CCDIST'];
-        $result['ACT10CCDIST'] = $objQuery['ACT10CCDIST'];
-        $result['ACT11CCDIST'] = $objQuery['ACT11CCDIST'];
-        $result['ACT1SCDIST'] = $objQuery['ACT1SCDIST'];
-        $result['ACT2SCDIST'] = $objQuery['ACT2SCDIST'];
-        $result['ACT3SCDIST'] = $objQuery['ACT3SCDIST'];
-        $result['ACT4SCDIST'] = $objQuery['ACT4SCDIST'];
-        $result['ACT5SCDIST'] = $objQuery['ACT5SCDIST'];
-        $result['ACT6SCDIST'] = $objQuery['ACT6SCDIST'];
-        $result['ACT7SCDIST'] = $objQuery['ACT7SCDIST'];
-        $result['ACT8SCDIST'] = $objQuery['ACT8SCDIST'];
-        $result['ACT9SCDIST'] = $objQuery['ACT9SCDIST'];
-        $result['ACT10SCDIST'] = $objQuery['ACT10SCDIST'];
-        $result['ACT11SCDIST'] = $objQuery['ACT11SCDIST'];
-        $result['ACT1SCNEAR'] = $objQuery['ACT1SCNEAR'];
-        $result['ACT2SCNEAR'] = $objQuery['ACT2SCNEAR'];
-        $result['ACT3SCNEAR'] = $objQuery['ACT3SCNEAR'];
-        $result['ACT4SCNEAR'] = $objQuery['ACT4SCNEAR'];
-        $result['ACT5CCNEAR'] = $objQuery['ACT5CCNEAR'];
-        $result['ACT6CCNEAR'] = $objQuery['ACT6CCNEAR'];
-        $result['ACT7CCNEAR'] = $objQuery['ACT7CCNEAR'];
-        $result['ACT8CCNEAR'] = $objQuery['ACT8CCNEAR'];
-        $result['ACT9CCNEAR'] = $objQuery['ACT9CCNEAR'];
-        $result['ACT10CCNEAR'] = $objQuery['ACT10CCNEAR'];
-        $result['ACT11CCNEAR'] = $objQuery['ACT11CCNEAR'];
-        $result['ACT5SCNEAR'] = $objQuery['ACT5SCNEAR'];
-        $result['ACT6SCNEAR'] = $objQuery['ACT6SCNEAR'];
-        $result['ACT7SCNEAR'] = $objQuery['ACT7SCNEAR'];
-        $result['ACT8SCNEAR'] = $objQuery['ACT8SCNEAR'];
-        $result['ACT9SCNEAR'] = $objQuery['ACT9SCNEAR'];
-        $result['ACT10SCNEAR'] = $objQuery['ACT10SCNEAR'];
-        $result['ACT11SCNEAR'] = $objQuery['ACT11SCNEAR'];
-        $result['ACT1CCNEAR'] = $objQuery['ACT1CCNEAR'];
-        $result['ACT2CCNEAR'] = $objQuery['ACT2CCNEAR'];
-        $result['ACT3CCNEAR'] = $objQuery['ACT3CCNEAR'];
-        $result['ACT4CCNEAR'] = $objQuery['ACT4CCNEAR'];
-        $result['ODVF1'] = $objQuery['ODVF1'];
-        $result['ODVF2'] = $objQuery['ODVF2'];
-        $result['ODVF3'] = $objQuery['ODVF3'];
-        $result['ODVF4'] = $objQuery['ODVF4'];
-        $result['OSVF1'] = $objQuery['OSVF1'];
-        $result['OSVF2'] = $objQuery['OSVF2'];
-        $result['OSVF3'] = $objQuery['OSVF3'];
-        $result['OSVF4'] = $objQuery['OSVF4'];
-        $result['MOTILITY_RS'] = $objQuery['MOTILITY_RS'];
-        $result['MOTILITY_RI'] = $objQuery['MOTILITY_RI'];
-        $result['MOTILITY_RR'] = $objQuery['MOTILITY_RR'];
-        $result['MOTILITY_RL'] = $objQuery['MOTILITY_RL'];
-        $result['MOTILITY_LS'] = $objQuery['MOTILITY_LS'];
-        $result['MOTILITY_LI'] = $objQuery['MOTILITY_LI'];
-        $result['MOTILITY_LR'] = $objQuery['MOTILITY_LR'];
-        $result['MOTILITY_LL'] = $objQuery['MOTILITY_LL'];
-        $result['NEURO_COMMENTS'] = $objQuery['NEURO_COMMENTS'];
-        $result['STEREOPSIS'] = $objQuery['STEREOPSIS'];
-        $result['ODNPA'] = $objQuery['ODNPA'];
-        $result['OSNPA'] = $objQuery['OSNPA'];
-        $result['VERTFUSAMPS'] = $objQuery['VERTFUSAMPS'];
-        $result['DIVERGENCEAMPS'] = $objQuery['DIVERGENCEAMPS'];
-        $result['NPC'] = $objQuery['NPC'];
-        $result['DACCDIST'] = $objQuery['DACCDIST'];
-        $result['DACCNEAR'] = $objQuery['DACCNEAR'];
-        $result['CACCDIST'] = $objQuery['CACCDIST'];
-        $result['CACCNEAR'] = $objQuery['CACCNEAR'];
-        $result['ODCOLOR'] = $objQuery['ODCOLOR'];
-        $result['OSCOLOR'] = $objQuery['OSCOLOR'];
-        $result['ODCOINS'] = $objQuery['ODCOINS'];
-        $result['OSCOINS'] = $objQuery['OSCOINS'];
-        $result['ODREDDESAT'] = $objQuery['ODREDDESAT'];
-        $result['OSREDDESAT'] = $objQuery['OSREDDESAT'];
-        $result['ODPUPILSIZE1'] = $objQuery['ODPUPILSIZE1'];
-        $result['ODPUPILSIZE2'] = $objQuery['ODPUPILSIZE2'];
-        $result['ODPUPILREACTIVITY'] = $objQuery['ODPUPILREACTIVITY'];
-        $result['ODAPD'] = $objQuery['ODAPD'];
-        $result['OSPUPILSIZE1'] = $objQuery['OSPUPILSIZE1'];
-        $result['OSPUPILSIZE2'] = $objQuery['OSPUPILSIZE2'];
-        $result['OSPUPILREACTIVITY'] = $objQuery['OSPUPILREACTIVITY'];
-        $result['OSAPD'] = $objQuery['OSAPD'];
-        $result['DIMODPUPILSIZE1'] = $objQuery['DIMODPUPILSIZE1'];
-        $result['DIMODPUPILSIZE2'] = $objQuery['DIMODPUPILSIZE2'];
-        $result['DIMODPUPILREACTIVITY'] = $objQuery['DIMODPUPILREACTIVITY'];
-        $result['DIMOSPUPILSIZE1'] = $objQuery['DIMOSPUPILSIZE1'];
-        $result['DIMOSPUPILSIZE2'] = $objQuery['DIMOSPUPILSIZE2'];
-        $result['DIMOSPUPILREACTIVITY'] = $objQuery['DIMOSPUPILREACTIVITY'];
-        $result['PUPIL_COMMENTS'] = $objQuery['PUPIL_COMMENTS'];
-        $result["json"] = json_encode($result);
-        echo json_encode($result);
-    } elseif ($zone == "IMPPLAN") {
-        $result['IMPPLAN'] = build_IMPPLAN_items($pid, $copy_from);
-        echo json_encode($result);
-    } elseif ($zone == "ALL") {
-        $result['RUL'] = $objQuery['RUL'];
-        $result['LUL'] = $objQuery['LUL'];
-        $result['RLL'] = $objQuery['RLL'];
-        $result['LLL'] = $objQuery['LLL'];
-        $result['RBROW'] = $objQuery['RBROW'];
-        $result['LBROW'] = $objQuery['LBROW'];
-        $result['RMCT'] = $objQuery['RMCT'];
-        $result['LMCT'] = $objQuery['LMCT'];
-        $result['RADNEXA'] = $objQuery['RADNEXA'];
-        $result['LADNEXA'] = $objQuery['LADNEXA'];
-        $result['RMRD'] = $objQuery['RMRD'];
-        $result['LMRD'] = $objQuery['LMRD'];
-        $result['RLF'] = $objQuery['RLF'];
-        $result['LLF'] = $objQuery['LLF'];
-        $result['RVFISSURE'] = $objQuery['RVFISSURE'];
-        $result['LVFISSURE'] = $objQuery['LVFISSURE'];
-        $result['ODHERTEL'] = $objQuery['ODHERTEL'];
-        $result['OSHERTEL'] = $objQuery['OSHERTEL'];
-        $result['HERTELBASE'] = $objQuery['HERTELBASE'];
-        $result['ODPIC'] = $objQuery['ODPIC'];
-        $result['OSPIC'] = $objQuery['OSPIC'];
-        $result['EXT_COMMENTS'] = $objQuery['EXT_COMMENTS'];
-
-        $result['OSCONJ'] = $objQuery['OSCONJ'];
-        $result['ODCONJ'] = $objQuery['ODCONJ'];
-        $result['ODCORNEA'] = $objQuery['ODCORNEA'];
-        $result['OSCORNEA'] = $objQuery['OSCORNEA'];
-        $result['ODAC'] = $objQuery['ODAC'];
-        $result['OSAC'] = $objQuery['OSAC'];
-        $result['ODLENS'] = $objQuery['ODLENS'];
-        $result['OSLENS'] = $objQuery['OSLENS'];
-        $result['ODIRIS'] = $objQuery['ODIRIS'];
-        $result['OSIRIS'] = $objQuery['OSIRIS'];
-        $result['ODKTHICKNESS'] = $objQuery['ODKTHICKNESS'];
-        $result['OSKTHICKNESS'] = $objQuery['OSKTHICKNESS'];
-        $result['ODGONIO'] = $objQuery['ODGONIO'];
-        $result['OSGONIO'] = $objQuery['OSGONIO'];
-        $result['ANTSEG_COMMENTS'] = $objQuery['ANTSEG_COMMENTS'];
-
-        $result['ODDISC'] = $objQuery['ODDISC'];
-        $result['OSDISC'] = $objQuery['OSDISC'];
-        $result['ODCUP'] = $objQuery['ODCUP'];
-        $result['OSCUP'] = $objQuery['OSCUP'];
-        $result['ODMACULA'] = $objQuery['ODMACULA'];
-        $result['OSMACULA'] = $objQuery['OSMACULA'];
-        $result['ODVESSELS'] = $objQuery['ODVESSELS'];
-        $result['OSVESSELS'] = $objQuery['OSVESSELS'];
-        $result['ODVITREOUS'] = $objQuery['ODVITREOUS'];
-        $result['OSVITREOUS'] = $objQuery['OSVITREOUS'];
-        $result['ODPERIPH'] = $objQuery['ODPERIPH'];
-        $result['OSPERIPH'] = $objQuery['OSPERIPH'];
-        $result['ODDRAWING'] = $objQuery['ODDRAWING'];
-        $result['OSDRAWING'] = $objQuery['OSDRAWING'];
-        $result['ODCMT'] = $objQuery['ODCMT'];
-        $result['OSCMT'] = $objQuery['OSCMT'];
-        $result['RETINA_COMMENTS'] = $objQuery['RETINA_COMMENTS'];
-
-        $result['ACT'] = $objQuery['ACT'];
-        $result['ACT5CCDIST'] = $objQuery['ACT5CCDIST'];
-        $result['ACT1CCDIST'] = $objQuery['ACT1CCDIST'];
-        $result['ACT2CCDIST'] = $objQuery['ACT2CCDIST'];
-        $result['ACT3CCDIST'] = $objQuery['ACT3CCDIST'];
-        $result['ACT4CCDIST'] = $objQuery['ACT4CCDIST'];
-        $result['ACT6CCDIST'] = $objQuery['ACT6CCDIST'];
-        $result['ACT7CCDIST'] = $objQuery['ACT7CCDIST'];
-        $result['ACT8CCDIST'] = $objQuery['ACT8CCDIST'];
-        $result['ACT9CCDIST'] = $objQuery['ACT9CCDIST'];
-        $result['ACT10CCDIST'] = $objQuery['ACT10CCDIST'];
-        $result['ACT11CCDIST'] = $objQuery['ACT11CCDIST'];
-        $result['ACT1SCDIST'] = $objQuery['ACT1SCDIST'];
-        $result['ACT2SCDIST'] = $objQuery['ACT2SCDIST'];
-        $result['ACT3SCDIST'] = $objQuery['ACT3SCDIST'];
-        $result['ACT4SCDIST'] = $objQuery['ACT4SCDIST'];
-        $result['ACT5SCDIST'] = $objQuery['ACT5SCDIST'];
-        $result['ACT6SCDIST'] = $objQuery['ACT6SCDIST'];
-        $result['ACT7SCDIST'] = $objQuery['ACT7SCDIST'];
-        $result['ACT8SCDIST'] = $objQuery['ACT8SCDIST'];
-        $result['ACT9SCDIST'] = $objQuery['ACT9SCDIST'];
-        $result['ACT10SCDIST'] = $objQuery['ACT10SCDIST'];
-        $result['ACT11SCDIST'] = $objQuery['ACT11SCDIST'];
-        $result['ACT1SCNEAR'] = $objQuery['ACT1SCNEAR'];
-        $result['ACT2SCNEAR'] = $objQuery['ACT2SCNEAR'];
-        $result['ACT3SCNEAR'] = $objQuery['ACT3SCNEAR'];
-        $result['ACT4SCNEAR'] = $objQuery['ACT4SCNEAR'];
-        $result['ACT5CCNEAR'] = $objQuery['ACT5CCNEAR'];
-        $result['ACT6CCNEAR'] = $objQuery['ACT6CCNEAR'];
-        $result['ACT7CCNEAR'] = $objQuery['ACT7CCNEAR'];
-        $result['ACT8CCNEAR'] = $objQuery['ACT8CCNEAR'];
-        $result['ACT9CCNEAR'] = $objQuery['ACT9CCNEAR'];
-        $result['ACT10CCNEAR'] = $objQuery['ACT10CCNEAR'];
-        $result['ACT11CCNEAR'] = $objQuery['ACT11CCNEAR'];
-        $result['ACT5SCNEAR'] = $objQuery['ACT5SCNEAR'];
-        $result['ACT6SCNEAR'] = $objQuery['ACT6SCNEAR'];
-        $result['ACT7SCNEAR'] = $objQuery['ACT7SCNEAR'];
-        $result['ACT8SCNEAR'] = $objQuery['ACT8SCNEAR'];
-        $result['ACT9SCNEAR'] = $objQuery['ACT9SCNEAR'];
-        $result['ACT10SCNEAR'] = $objQuery['ACT10SCNEAR'];
-        $result['ACT11SCNEAR'] = $objQuery['ACT11SCNEAR'];
-        $result['ACT1CCNEAR'] = $objQuery['ACT1CCNEAR'];
-        $result['ACT2CCNEAR'] = $objQuery['ACT2CCNEAR'];
-        $result['ACT3CCNEAR'] = $objQuery['ACT3CCNEAR'];
-        $result['ACT4CCNEAR'] = $objQuery['ACT4CCNEAR'];
-        $result['ODVF1'] = $objQuery['ODVF1'];
-        $result['ODVF2'] = $objQuery['ODVF2'];
-        $result['ODVF3'] = $objQuery['ODVF3'];
-        $result['ODVF4'] = $objQuery['ODVF4'];
-        $result['OSVF1'] = $objQuery['OSVF1'];
-        $result['OSVF2'] = $objQuery['OSVF2'];
-        $result['OSVF3'] = $objQuery['OSVF3'];
-        $result['OSVF4'] = $objQuery['OSVF4'];
-        $result['MOTILITY_RS'] = $objQuery['MOTILITY_RS'];
-        $result['MOTILITY_RI'] = $objQuery['MOTILITY_RI'];
-        $result['MOTILITY_RR'] = $objQuery['MOTILITY_RR'];
-        $result['MOTILITY_RL'] = $objQuery['MOTILITY_RL'];
-        $result['MOTILITY_LS'] = $objQuery['MOTILITY_LS'];
-        $result['MOTILITY_LI'] = $objQuery['MOTILITY_LI'];
-        $result['MOTILITY_LR'] = $objQuery['MOTILITY_LR'];
-        $result['MOTILITY_LL'] = $objQuery['MOTILITY_LL'];
-        $result['NEURO_COMMENTS'] = $objQuery['NEURO_COMMENTS'];
-        $result['STEREOPSIS'] = $objQuery['STEREOPSIS'];
-        $result['ODNPA'] = $objQuery['ODNPA'];
-        $result['OSNPA'] = $objQuery['OSNPA'];
-        $result['VERTFUSAMPS'] = $objQuery['VERTFUSAMPS'];
-        $result['DIVERGENCEAMPS'] = $objQuery['DIVERGENCEAMPS'];
-        $result['NPC'] = $objQuery['NPC'];
-        $result['DACCDIST'] = $objQuery['DACCDIST'];
-        $result['DACCNEAR'] = $objQuery['DACCNEAR'];
-        $result['CACCDIST'] = $objQuery['CACCDIST'];
-        $result['CACCNEAR'] = $objQuery['CACCNEAR'];
-        $result['ODCOLOR'] = $objQuery['ODCOLOR'];
-        $result['OSCOLOR'] = $objQuery['OSCOLOR'];
-        $result['ODCOINS'] = $objQuery['ODCOINS'];
-        $result['OSCOINS'] = $objQuery['OSCOINS'];
-        $result['ODREDDESAT'] = $objQuery['ODREDDESAT'];
-        $result['OSREDDESAT'] = $objQuery['OSREDDESAT'];
-        $result['ODPUPILSIZE1'] = $objQuery['ODPUPILSIZE1'];
-        $result['ODPUPILSIZE2'] = $objQuery['ODPUPILSIZE2'];
-        $result['ODPUPILREACTIVITY'] = $objQuery['ODPUPILREACTIVITY'];
-        $result['ODAPD'] = $objQuery['ODAPD'];
-        $result['OSPUPILSIZE1'] = $objQuery['OSPUPILSIZE1'];
-        $result['OSPUPILSIZE2'] = $objQuery['OSPUPILSIZE2'];
-        $result['OSPUPILREACTIVITY'] = $objQuery['OSPUPILREACTIVITY'];
-        $result['OSAPD'] = $objQuery['OSAPD'];
-        $result['DIMODPUPILSIZE1'] = $objQuery['DIMODPUPILSIZE1'];
-        $result['DIMODPUPILSIZE2'] = $objQuery['DIMODPUPILSIZE2'];
-        $result['DIMODPUPILREACTIVITY'] = $objQuery['DIMODPUPILREACTIVITY'];
-        $result['DIMOSPUPILSIZE1'] = $objQuery['DIMOSPUPILSIZE1'];
-        $result['DIMOSPUPILSIZE2'] = $objQuery['DIMOSPUPILSIZE2'];
-        $result['DIMOSPUPILREACTIVITY'] = $objQuery['DIMOSPUPILREACTIVITY'];
-        $result['PUPIL_COMMENTS'] = $objQuery['PUPIL_COMMENTS'];
-        $result['IMP'] = $objQuery['IMP'];
-        $result["json"] = json_encode($result);
-        echo json_encode($result);
-    } elseif ($zone == "READONLY") {
-        $result = $objQuery;
-        $count_rx = '0';
-        $query1 = "select * from form_eye_mag_wearing where PID=? and ENCOUNTER=? and FORM_ID >'0' ORDER BY RX_NUMBER";
-        $session = SessionWrapperFactory::getInstance()->getActiveSession();
-        $wear = sqlStatement($query1, [$pid,$session->get('encounter')]);
-        while ($wearing = sqlFetchArray($wear)) {
-            ${"display_W_$count_rx"}        = '';
-                  ${"ODSPH_$count_rx"}            = $wearing['ODSPH'];
-                  ${"ODCYL_$count_rx"}            = $wearing['ODCYL'];
-                  ${"ODAXIS_$count_rx"}           = $wearing['ODAXIS'];
-                  ${"OSSPH_$count_rx"}            = $wearing['OSSPH'];
-                  ${"OSCYL_$count_rx"}            = $wearing['OSCYL'];
-                  ${"OSAXIS_$count_rx"}           = $wearing['OSAXIS'];
-                  ${"ODMIDADD_$count_rx"}         = $wearing['ODMIDADD'];
-                  ${"OSMIDADD_$count_rx"}         = $wearing['OSMIDADD'];
-                  ${"ODADD_$count_rx"}            = $wearing['ODADD'];
-                  ${"OSADD_$count_rx"}            = $wearing['OSADD'];
-                  ${"ODVA_$count_rx"}             = $wearing['ODVA'];
-                  ${"OSVA_$count_rx"}             = $wearing['OSVA'];
-                  ${"ODNEARVA_$count_rx"}         = $wearing['ODNEARVA'];
-                  ${"OSNEARVA_$count_rx"}         = $wearing['OSNEARVA'];
-                  ${"ODPRISM_$count_rx"}          = $wearing['ODPRISM'] ?? '';
-                  ${"OSPRISM_$count_rx"}          = $wearing['OSPRISM'] ?? '';
-                  ${"W_$count_rx"}                = '1';
-                  ${"RX_TYPE_$count_rx"}          = $wearing['RX_TYPE'];
-                  ${"ODHPD_$count_rx"}            = $wearing['ODHPD'];
-                  ${"ODHBASE_$count_rx"}          = $wearing['ODHBASE'];
-                  ${"ODVPD_$count_rx"}            = $wearing['ODVPD'];
-                  ${"ODVBASE_$count_rx"}          = $wearing['ODVBASE'];
-                  ${"ODSLABOFF_$count_rx"}        = $wearing['ODSLABOFF'];
-                  ${"ODVERTEXDIST_$count_rx"}     = $wearing['ODVERTEXDIST'];
-                  ${"OSHPD_$count_rx"}            = $wearing['OSHPD'];
-                  ${"OSHBASE_$count_rx"}          = $wearing['OSHBASE'];
-                  ${"OSVPD_$count_rx"}            = $wearing['OSVPD'];
-                  ${"OSVBASE_$count_rx"}          = $wearing['OSVBASE'];
-                  ${"OSSLABOFF_$count_rx"}        = $wearing['OSSLABOFF'];
-                  ${"OSVERTEXDIST_$count_rx"}     = $wearing['OSVERTEXDIST'];
-                  ${"ODMPDD_$count_rx"}           = $wearing['ODMPDD'];
-                  ${"ODMPDN_$count_rx"}           = $wearing['ODMPDN'];
-                  ${"OSMPDD_$count_rx"}           = $wearing['OSMPDD'];
-                  ${"OSMPDN_$count_rx"}           = $wearing['OSMPDN'];
-                  ${"BPDD_$count_rx"}             = $wearing['BPDD'];
-                  ${"BPDN_$count_rx"}             = $wearing['BPDN'];
-                  ${"LENS_MATERIAL_$count_rx"}    = $wearing['LENS_MATERIAL'];
-                  ${"LENS_TREATMENTS_$count_rx"}  = $wearing['LENS_TREATMENTS'];
-                  ${"COMMENTS_$count_rx"}         = $wearing['COMMENTS'];
-        }
-        $result['IMPPLAN'] = build_IMPPLAN_items($pid, $copy_from);
-        $result['query'] = $query;
-        $result["json"] = json_encode($result);
-        echo json_encode($result);
+    $record = QueryUtils::querySingleRow(CopyForward::RECORD_QUERY, [$pid, $copy_from]);
+    if (!is_array($record)) {
+        // No such form for this patient: nothing to carry forward.
+        echo json_encode([]);
+        return;
     }
+
+    if ($mode instanceof Zone) {
+        echo json_encode(CopyForward::pick($record, $mode->fields()));
+        return;
+    }
+
+    $result = match ($mode) {
+        CopyMode::IMPPLAN => ['IMPPLAN' => build_IMPPLAN_items($pid, $copy_from)],
+        CopyMode::ALL => CopyForward::pick($record, CopyForward::allFields()),
+        CopyMode::READONLY => $record + ['IMPPLAN' => build_IMPPLAN_items($pid, $copy_from)],
+    };
+
+    echo json_encode($result);
 }
 
 /**
@@ -3804,10 +3425,14 @@ function build_CODING_items($pid, $encounter)
  *  Each document info from documents table is added to these as arrays
  *
  *  @param string $pid patient_id
- *  @return array($documents)
+ *  @return array
  */
 function document_engine($pid)
 {
+    $categories = [];
+    $my_name = [];
+    $children_names = [];
+    $zones = [];
     $sql1 =  sqlStatement("Select * from categories");
     while ($row1 = sqlFetchArray($sql1)) {
         $categories[] = $row1;
@@ -3839,7 +3464,7 @@ function document_engine($pid)
         //the document may not be created on the same day as the encounter, use encounter date first
         //get encounter date from encounter id
         $row2['cat_name'] = preg_replace('/ - Eye/', '', (string) $row2['cat_name']);
-        $row2['display_url'] = preg_replace("|file:///.*/sites/|", OEGlobalsBag::getInstance()->get('webroot') . "/sites/", (string) $row2['url']);
+        $row2['display_url'] = preg_replace("|file:///.*/sites/|", OEGlobalsBag::getInstance()->getWebRoot() . "/sites/", (string) $row2['url']);
         if ($row2['encounter_id']) {
             $visit = getEncounterDateByEncounter($row2['encounter_id']);
             $row2['encounter_date'] = oeFormatSDFT(strtotime($visit['date'] ?? ''));
@@ -3880,7 +3505,7 @@ function document_engine($pid)
  *  @param string $category_value options EXT,ANTSEG,RETINA,NEURO,OTHER
  *                These values are taken from the "value" field in the Documents' table "categories".
  *                They allow us to regroup the categories how we like them.
- *  @return array($imaging,$episode)
+ *  @return array
  */
 function display($pid, $encounter, $category_value)
 {
@@ -3919,7 +3544,7 @@ function display($pid, $encounter, $category_value)
         $episode .= "<tr>
         <td class='right'><span class='font-weight-bold'>" . text($documents['zones'][$category_value][$j]['name']) . "</span>:&nbsp;</td>
         <td>
-            <a onclick=\"openNewForm('" . OEGlobalsBag::getInstance()->get('webroot') . "/controller.php?document&upload&patient_id=" . attr($pid) . "&parent_id=" . attr($documents['zones'][$category_value][$j]['id']) . "&', '" . xla('Upload') . " " . attr($documents['zones'][$category_value][$j]['name']) . "');\" href='#'>
+            <a onclick=\"openNewForm('" . OEGlobalsBag::getInstance()->getWebRoot() . "/controller.php?document&upload&patient_id=" . attr($pid) . "&parent_id=" . attr($documents['zones'][$category_value][$j]['id']) . "&', '" . xla('Upload') . " " . attr($documents['zones'][$category_value][$j]['name']) . "');\" href='#'>
             <img src='../../forms/" . $form_folder . "/images/upload_file.png' class='little_image'>
             </a>
         </td>
@@ -3931,7 +3556,7 @@ function display($pid, $encounter, $category_value)
         <td>";
         //open via OpenEMR Documents with treemenu
         if ($count_here > '0') {
-            $episode .= '<a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->get('webroot') . '/controller.php?document&view&patient_id=' . $pid . '&doc_id=' . $id_to_show . '\',\'' . xla('Documents') . ': ' . attr($documents['zones'][$category_value][$j]['name']) . '\');"><img src="../../forms/' . $form_folder . '/images/jpg.png" class="little_image" /></a>';
+            $episode .= '<a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->getWebRoot() . '/controller.php?document&view&patient_id=' . $pid . '&doc_id=' . $id_to_show . '\',\'' . xla('Documents') . ': ' . attr($documents['zones'][$category_value][$j]['name']) . '\');"><img src="../../forms/' . $form_folder . '/images/jpg.png" class="little_image" /></a>';
         }
 
         $episode .= '</td></tr>';
@@ -3952,7 +3577,7 @@ function display($pid, $encounter, $category_value)
  *  @param string $encounter is the encounter_id
  *  @param string $title is the form title
  *
- *  @return nothing, outputs directly to screen
+ *  @return void
  */
 function menu_overhaul_top($pid, $encounter, $title = "Eye Exam"): void
 {
@@ -3982,7 +3607,7 @@ function menu_overhaul_top($pid, $encounter, $title = "Eye Exam"): void
         <div class="container-fluid" style="margin-top:0px;padding:2px;">
             <div class="navbar-brand" style="color:black;">
                 &nbsp;
-                <img src="<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/sites/default/images/login_logo.gif" class="little_image">
+                <img src="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/sites/default/images/login_logo.gif" class="little_image">
                 <span class="brand"><?php echo xlt('Eye Exam'); ?></span>
             </div>
             <div class="navbar-collapse oer-navbar-collapse mr-auto mt-2 mt-lg-0" id="oer-navbar-collapse-1">
@@ -3990,7 +3615,7 @@ function menu_overhaul_top($pid, $encounter, $title = "Eye Exam"): void
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" id="menu_dropdown_file" role="button" aria-expanded="true"><?php echo xlt("File"); ?> </a>
                         <ul class="dropdown-menu" role="menu">
-                            <li class="nav-lik" id="menu_PRINT_narrative" name="menu_PRINT_report"><a class="nav-link black" id="BUTTON_PRINT_report" target="_new" href="<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/patient_file/report/custom_report.php?printable=1&pdf=0&<?php echo attr_url($form_folder) . "_" . attr_url($form_id) . "=" . attr_url($encounter); ?>"><?php echo xlt("Print Report"); ?></a></li>
+                            <li class="nav-lik" id="menu_PRINT_narrative" name="menu_PRINT_report"><a class="nav-link black" id="BUTTON_PRINT_report" target="_new" href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/patient_file/report/custom_report.php?printable=1&pdf=0&<?php echo attr_url($form_folder) . "_" . attr_url($form_id) . "=" . attr_url($encounter); ?>"><?php echo xlt("Print Report"); ?></a></li>
                             <li class="nav-ite" id="menu_PRINT_narrative_2" name="menu_PRINT_report_2"><a class="nav-link black" id="BUTTON_PRINT_report_2" target="_new" href="#"
                                 onclick="top.restoreSession(); create_task('<?php echo attr($provider_id); ?>','Report','menu'); return false;">
                                 <?php echo xlt("Save Report as PDF"); ?></a></li>
@@ -4002,7 +3627,7 @@ function menu_overhaul_top($pid, $encounter, $title = "Eye Exam"): void
                             <li id="menu_Defaults" name="menu_Defaults" class="">
                                 <a class="nav-link black"
                                    id="BUTTON_Defaults_menu"
-                                   onclick="openNewForm('<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/super/edit_list.php?list_id=Eye_defaults_<?php echo attr($provider_id); ?>', '<?php echo xla('Default Exam Values'); ?>');"
+                                   onclick="openNewForm('<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/super/edit_list.php?list_id=Eye_defaults_<?php echo attr($provider_id); ?>', '<?php echo xla('Default Exam Values'); ?>');"
                                    name="provider_todo"
                                    href="JavaScript:void(0);">
                                 <?php echo xlt("Default Values"); ?> &nbsp;
@@ -4027,7 +3652,7 @@ function menu_overhaul_top($pid, $encounter, $title = "Eye Exam"): void
                                     <li id="menu_fullscreen" name="menu_fullscreen" <?php echo ($fullscreen ?? ''); ?>>
                                         <!-- AI-generated code (GitHub Copilot) - Refactored to use URLSearchParams -->
                                         <a class="nav-link black"
-                                           onclick="openNewForm(<?php echo attr_js(OEGlobalsBag::getInstance()->get('webroot')); ?> + '/interface/patient_file/encounter/load_form.php?formname=fee_sheet');top.restoreSession();(function(){const p=new URLSearchParams({display:'fullscreen',encounter:<?php echo attr_js(urlencode((string) $encounter)); ?>});dopopup(<?php echo attr_js($_SERVER['REQUEST_URI']); ?> + '&' + p.toString());})();"
+                                           onclick="openNewForm(<?php echo attr_js(OEGlobalsBag::getInstance()->getWebRoot()); ?> + '/interface/patient_file/encounter/load_form.php?formname=fee_sheet');top.restoreSession();(function(){const p=new URLSearchParams({display:'fullscreen',encounter:<?php echo attr_js(urlencode((string) $encounter)); ?>});dopopup(<?php echo attr_js($_SERVER['REQUEST_URI']); ?> + '&' + p.toString());})();"
                                            href="JavaScript:void(0);"
                                            ><?php echo xlt('Fullscreen'); ?></a>
                                     </li>
@@ -4071,7 +3696,7 @@ function menu_overhaul_top($pid, $encounter, $title = "Eye Exam"): void
                                 <span class="menu_icon"><i title="<?php echo xla('Tooltips on/off'); ?>" id="qtip_icon" class="fa fa-info-circle fa-1"></i></span></a>
                             </li>
                             <li>
-                                <a class="nav-link black" tabindex="-1" target="_shorthand" href="<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/forms/eye_mag/help.php">
+                                <a class="nav-link black" tabindex="-1" target="_shorthand" href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/forms/eye_mag/help.php">
                                     <i class="fa fa-help"></i>  <?php echo xlt("Shorthand Help"); ?>
                                     <span class="menu_icon">
                                         <i title="<?php echo xla('Click for Shorthand Help.'); ?>" class="fa fa-info-circle fa-1"></i></span></a>
@@ -4080,7 +3705,7 @@ function menu_overhaul_top($pid, $encounter, $title = "Eye Exam"): void
                     </li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right my-2 my-lg-0">
-                    <li><span style="margin-right:15px;color:black;"  onclick="editScripts('<?php echo OEGlobalsBag::getInstance()->get('web_root'); ?>/controller.php?prescription&list&id=<?php echo attr_url($pid); ?>');">eRx</button>
+                    <li><span style="margin-right:15px;color:black;"  onclick="editScripts('<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/controller.php?prescription&list&id=<?php echo attr_url($pid); ?>');">eRx</button>
                         </span></li>
                     <li ><span id="active_flag" name="active_flag" style="margin-right:15px;color:red;"> <?php echo xlt('Active Chart'); ?> </span>
                         <span name="active_icon" id="active_icon" style="color:black;"><i class='fa fa-toggle-on'></i></span></li>
@@ -4099,7 +3724,7 @@ function menu_overhaul_top($pid, $encounter, $title = "Eye Exam"): void
  *
  *  @param string $pid patient_id
  *  @param string $encounter is the current encounter number
- *  @return nothing, outputs directly to screen
+ *  @return void
  */
 function menu_overhaul_left($pid, $encounter): void
 {
@@ -4170,14 +3795,14 @@ function menu_overhaul_left($pid, $encounter): void
             if (!empty($documents['docs_in_name']['Patient Photograph'][0])) {
                 ?>
                 <object><embed
-                            src="<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/controller.php?document&retrieve&patient_id=<?php echo attr($pid); ?>&document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&as_file=false&original_file=true&disable_exit=false&show_original=true&context=patient_picture"
+                            src="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/controller.php?document&retrieve&patient_id=<?php echo attr($pid); ?>&document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&as_file=false&original_file=true&disable_exit=false&show_original=true&context=patient_picture"
 
-                            Xsrc="<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/controller.php?document&amp;retrieve&amp;patient_id=<?php echo attr($pid); ?>&amp;document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&amp;as_file=false" frameborder="0"
+                            Xsrc="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/controller.php?document&amp;retrieve&amp;patient_id=<?php echo attr($pid); ?>&amp;document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&amp;as_file=false" frameborder="0"
                      type="<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['mimetype']); ?>" allowscriptaccess="always" allowfullscreen="false" height="100"></embed></object>
                 <?php
             } else {
                 ?>
-            <object><embed src="<?php echo OEGlobalsBag::getInstance()->get('web_root'); ?>/interface/forms/<?php echo $form_folder; ?>/images/anon.gif" frameborder="0"
+            <object><embed src="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/forms/<?php echo $form_folder; ?>/images/anon.gif" frameborder="0"
                  type="image/gif" height="50"></embed></object>
                 <?php
             }
@@ -4235,7 +3860,7 @@ function menu_overhaul_left($pid, $encounter): void
  *
  *  @param string $pid patient_id
  *  @param string $encounter is the current encounter number
- *  @return nothing, outputs directly to screen
+ *  @return void
  */
 
 function menu_overhaul_bottom($pid, $encounter): void
@@ -4249,6 +3874,7 @@ function menu_overhaul_bottom($pid, $encounter): void
  */
 function Menu_myGetRegistered($state = "1", $limit = "unlimited", $offset = "0")
 {
+    $all = [];
     $sql = "SELECT category, nickname, name, state, directory, id, sql_run, " .
       "unpackaged, date FROM registry WHERE " .
       "state LIKE ? ORDER BY category, priority, name";
@@ -4302,7 +3928,7 @@ function report_header($pid, $direction = 'shell')
             <td style='width:150px;text-align:top;'>
                 <?php
                 if ($direction == "web") {
-                    $practice_logo = OEGlobalsBag::getInstance()->get('webroot') . "/sites/default/images/practice_logo.gif";
+                    $practice_logo = OEGlobalsBag::getInstance()->getWebRoot() . "/sites/default/images/practice_logo.gif";
                     if (file_exists($OE_SITE_DIR . "/images/practice_logo.gif")) {
                         echo "<img src='$practice_logo' align='left' style='width:150px;margin:0px 10px;'><br />\n";
                     }
@@ -4374,6 +4000,13 @@ function start_your_engines($FIELDS)
     global $pid;
     global $codes_found;
     global $PMSFH;
+    $clinical_terms = [];
+    $hit_RVO = [];
+    $code = '';
+    $DM_code = '';
+    $DX = '';
+    $sub_term = '';
+    $count = 0;
     if (!($PMFSH ?? '')) {
         $PMSFH = build_PMSFH($pid);
     }
@@ -4850,6 +4483,15 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday'): string
     global $encounter_data;
     global $dated;
     global $visit_date;
+    $OCT_date = []; $VF_date = []; $VISITS_date = []; $time_OU = []; $GONIO_date = [];
+    $GONIO = []; $ODIOP = []; $OSIOP = []; $ODIOPTARGETS = []; $OSIOPTARGETS = [];
+    $GONIO_values = []; $OCT_values = []; $VF_values = []; $OD_values = []; $OS_values = [];
+    $OD_methods = []; $OS_methods = []; $ODIOPTARGET_values = []; $OSIOPTARGET_values = [];
+    $OD_time_values = []; $OS_time_values = [];
+    $current_OCT = ''; $current_VF = ''; $old_OCTs = ''; $old_VFs = '';
+    $FAILED_drug = ''; $FAILED_drugs = ''; $gonios = ''; $hideme = ''; $time = '';
+    $count = 0;
+    $ODIOPTARGET = ''; $OSIOPTARGET = '';
 
     if (!$documents) {
         [$documents] = document_engine($pid);
@@ -4968,10 +4610,7 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday'): string
             $OSIOP[$i]['time'] = $time;
 
         if ($encounter_data['ODIOPAP'] > '') {
-            if (!is_int($encounter_data['ODIOPAP'])) {
-                $ODIOP[$k]['IOP'] = '';
-            } else {
-                $ODIOP[$i]['IOP'] = $encounter_data['ODIOPAP']; }
+            $ODIOP[$i]['IOP'] = !is_int($encounter_data['ODIOPAP']) ? '' : $encounter_data['ODIOPAP'];
             $ODIOP[$i]['method'] = "AP";
         } elseif ($encounter_data['ODIOPTPN'] > '') {
             $ODIOP[$i]['IOP'] = $encounter_data['ODIOPTPN'];
@@ -4979,10 +4618,7 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday'): string
         }
 
         if ($encounter_data['OSIOPAP'] > '') {
-            if (!is_int($encounter_data['OSIOPAP'])) {
-                $OSIOP[$k]['IOP'] = '';
-            } else {
-                $OSIOP[$i]['IOP'] = $encounter_data['OSIOPAP']; }
+            $OSIOP[$i]['IOP'] = !is_int($encounter_data['OSIOPAP']) ? '' : $encounter_data['OSIOPAP'];
             $OSIOP[$i]['method'] = "AP";
         } elseif ($encounter_data['OSIOPTPN'] > '') {
             $OSIOP[$i]['IOP'] = $encounter_data['OSIOPTPN'];
@@ -5012,10 +4648,10 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday'): string
 
     //can't merge empty arrays
     $list = [];
-    $arrs[] = $OCT_date ?? '';
-    $arrs[] = $VF_date ?? '';
-    $arrs[] = $GONIO_date ?? '';
-    $arrs[] = $VISITS_date ?? '';
+    $arrs[] = $OCT_date;
+    $arrs[] = $VF_date;
+    $arrs[] = $GONIO_date;
+    $arrs[] = $VISITS_date;
 
     foreach ($arrs as $arr) {
         if (is_array($arr)) {
@@ -5168,34 +4804,32 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday'): string
                         <?php  ($no_drugs ?? null) ? ($meds_here = '') : $meds_here = xlt('Start'); ?>
                     <td class="GFS_title" style="text-align:center;"><?php echo $meds_here; ?></td>
                     <?php
-                    if ($FAILED_drugs ?? null) {
+                    if ($FAILED_drugs !== '') {
                         echo '<td><span class="right toggleme" id="toggle_drugs"><i class="fa-regular fa-square-caret-down"></i></span></td>';
                     } ?>
                 </tr>
                 <?php
                 echo $current_drugs ?? '';
-                if ($FAILED_drugs ?? null) {
+                if ($FAILED_drugs !== '') {
                     echo '<tr class="' . $hideme . '"><td class="GFS_title" colspan="1">' . xlt('Prior Eye Meds') . '</td><td class="GFS_title" style="text-align:center;">' . xlt('Start') . '</td><td  style="text-align:center;" class="GFS_title">End</td></tr>';
                 }
 
-                echo $FAILED_drugs ?? '';
+                echo $FAILED_drugs;
 
                 //start VF section
                 if ($count_VF > '0') { //need to decide how many to show on open, and hide the rest?  For now the first only.
                     $count = 0;
                     foreach ($documents['docs_in_name']['VF'] as $VF) {
                         if ($count < 1) {
-                            //    $episode .= '<a onclick="openNewForm(\''.$GLOBALS['webroot'].'/controller.php?document&view&patient_id='.$pid.'&doc_id='.$id_to_show.'\',\'Documents\');"><img src="../../forms/'.$form_folder.'/images/jpg.png" class="little_image" /></a>';
-
                             $current_VF = '<tr><td class="GFS_td_1 blue">
-                                <a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->get('webroot') . '/controller.php?document&view&patient_id=' . attr($pid) . '&doc_id=' . attr($VF['id']) . '\',\'Documents\');">
+                                <a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->getWebRoot() . '/controller.php?document&view&patient_id=' . attr($pid) . '&doc_id=' . attr($VF['id']) . '\',\'Documents\');">
                                 <img src="../../forms/' . $form_folder . '/images/jpg.png" class="little_image" style="width:15px; height:15px;" /></a>
                                 </td>
                                 <td class="GFS_td_1">' . $VF['docdate'] . '</td>
                                 </tr>';
                         } else {
                             $old_VFs .= '<tr><td class="GFS_td_1 hideme_VFs nodisplay"">
-                                <a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->get('webroot') . '/controller.php?document&view&patient_id=' . attr($pid) . '&doc_id=' . attr($VF['id']) . '\',\'Documents\');">
+                                <a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->getWebRoot() . '/controller.php?document&view&patient_id=' . attr($pid) . '&doc_id=' . attr($VF['id']) . '\',\'Documents\');">
                                 <img src="../../forms/' . $form_folder . '/images/jpg.png" class="little_image" style="width:15px; height:15px;" /></a></td>
                                 <td class="hideme_VFs nodisplay GFS_td_1">' . $VF['docdate'] . '</td></tr>';
                         }
@@ -5209,12 +4843,12 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday'): string
                 <tr class="GFS_tr">
                     <td colspan="3" class="GFS_title"><?php echo xlt('Visual Fields'); ?>:
                     <?php
-                    if ($old_VFs ?? null) {
+                    if ($old_VFs !== '') {
                         echo '<td><span class="top right" id="toggle_VFs"><i class="fa-regular fa-square-caret-down"></i></span></td>';
                     }
                     ?>
                 </tr>
-                <?php echo $current_VF . ($old_VFs ?? '');
+                <?php echo $current_VF . $old_VFs;
                 //end VF section
 
                 //start Optic Nerve section
@@ -5233,14 +4867,14 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday'): string
                                 if ($count < 1) {
                                     $current_OCT = '<tr>
                                             <td class="GFS_td_1">
-                                            <a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->get('webroot') . '/controller.php?document&view&patient_id=' . attr($pid) . '&doc_id=' . attr($OCT['id']) . '\',\'Documents\');"><img src="../../forms/' . $form_folder . '/images/jpg.png" class="little_image" style="width:15px; height:15px;" /></a>
+                                            <a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->getWebRoot() . '/controller.php?document&view&patient_id=' . attr($pid) . '&doc_id=' . attr($OCT['id']) . '\',\'Documents\');"><img src="../../forms/' . $form_folder . '/images/jpg.png" class="little_image" style="width:15px; height:15px;" /></a>
                                             </td>
                                             <td class="GFS_td_1">' . $OCT['docdate'] . '</td>
                                         </tr>
                                         ';
                                 } else {
                                     $old_OCTs .= '<tr><td class="hideme_OCTs nodisplay GFS_td_1">
-                                                <a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->get('webroot') . '/controller.php?document&view&patient_id=' . attr($pid) . '&doc_id=' . attr($OCT['id']) . '\',\'Documents\');"><img src="../../forms/' . $form_folder . '/images/jpg.png" class="little_image" style="width:15px; height:15px;" /></a>
+                                                <a onclick="openNewForm(\'' . OEGlobalsBag::getInstance()->getWebRoot() . '/controller.php?document&view&patient_id=' . attr($pid) . '&doc_id=' . attr($OCT['id']) . '\',\'Documents\');"><img src="../../forms/' . $form_folder . '/images/jpg.png" class="little_image" style="width:15px; height:15px;" /></a>
                                                 </td><td class="hideme_OCTs nodisplay GFS_td_1">' . $OCT['docdate'] . '</td></tr>';
                                 }
                                 $count++;
@@ -5249,12 +4883,12 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday'): string
                             $current_OCT = "<tr><td colspan='3' class='GFS_td_1' style='text-align:center;'>" . xlt('Not documented') . "</td></tr>";
                         }
 
-                        if ($old_OCTs ?? null) {
+                        if ($old_OCTs !== '') {
                             echo '<td><span class="top right " id="toggle_OCTs"><i class="fa-regular fa-square-caret-down"></i></span></td>';
                         }
 
                         echo "</tr>";
-                        echo $current_OCT . ($old_OCTs ?? '');
+                        echo $current_OCT . $old_OCTs;
 
                         $count = 0;
                         $hideme = '';
@@ -6310,12 +5944,12 @@ function generate_specRx($W)
                           <td name="W_wide" title="<?php echo xla('Binocular Pupillary Diameter - Distance'); ?>"><?php echo xlt('PD-D{{abbreviation for Binocular Pupillary Diameter - Distance}}'); ?></td>
                           <td name="W_wide" title="<?php echo xla('Binocular Pupillary Diameter - Near'); ?>"><?php echo xlt('PD-N{{abbreviation for Binocular Pupillary Diameter - Near}}'); ?></td>
                           <td name="W_wide" title="<?php echo xla('Lens Material'); ?>" colspan="2">
-                            <a href="<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/super/edit_list.php?list_id=Eye_Lens_Material" target="RTop"
+                            <a href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/super/edit_list.php?list_id=Eye_Lens_Material" target="RTop"
                                   title="<?php echo xla('Click here to edit list of available Lens Materials'); ?>"
                                   name="Lens_mat"><span class="underline"><?php echo xlt('Lens Material'); ?></span> <i class="fa fa-pencil-alt-alt fa-fw"></i> </a>
                           </td>
                           <td name="W_wide2" colspan="4" rowspan="4">
-                            <a href="<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/super/edit_list.php?list_id=Eye_Lens_Treatments" target="RTop"
+                            <a href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/super/edit_list.php?list_id=Eye_Lens_Treatments" target="RTop"
                                   title="<?php echo xla('Click here to edit list of available Lens Treatment Options'); ?>"
                                   name="Lens_txs"><span class="underline"><?php echo xlt('Lens Treatments'); ?></span> <i class="fa fa-pencil-alt-alt fa-fw"></i> </a>
                             <br />
@@ -6364,6 +5998,27 @@ function generate_specRx($W)
 function display_refractive_data($encounter_data): void
 {
     @extract($encounter_data);
+    $ARNEARODVA ??= null; $ARNEAROSVA ??= null; $ARODADD ??= null; $ARODAXIS ??= null; $ARODCYL ??= null;
+    $ARODPRISM ??= null; $ARODSPH ??= null; $ARODVA ??= null; $AROSADD ??= null; $AROSAXIS ??= null;
+    $AROSCYL ??= null; $AROSPRISM ??= null; $AROSSPH ??= null; $AROSVA ??= null; $CONTRASTODVA ??= null;
+    $CRNEARODVA ??= null; $CRNEAROSVA ??= null; $CRODADD ??= null; $CRODAXIS ??= null; $CRODCYL ??= null;
+    $CRODPRISM ??= null; $CRODSPH ??= null; $CRODVA ??= null; $CROSADD ??= null; $CROSAXIS ??= null;
+    $CROSCYL ??= null; $CROSPRISM ??= null; $CROSSPH ??= null; $CROSVA ??= null; $CTLBRANDOD ??= null;
+    $CTLBRANDOS ??= null; $CTLMANUFACTUREROD ??= null; $CTLMANUFACTUREROS ??= null; $CTLODADD ??= null;
+    $CTLODAXIS ??= null; $CTLODBC ??= null; $CTLODCYL ??= null; $CTLODDIAM ??= null; $CTLODSPH ??= null;
+    $CTLODVA ??= null; $CTLOSADD ??= null; $CTLOSAXIS ??= null; $CTLOSBC ??= null; $CTLOSCYL ??= null;
+    $CTLOSDIAM ??= null; $CTLOSSPH ??= null; $CTLOSVA ??= null; $CTLSUPPLIEROD ??= null;
+    $CTLSUPPLIEROS ??= null; $GLAREODVA ??= null; $GLAREOSVA ??= null; $LIODVA ??= null; $LIOSVA ??= null;
+    $MRNEARODVA ??= null; $MRNEAROSVA ??= null; $MRODADD ??= null; $MRODAXIS ??= null; $MRODCYL ??= null;
+    $MRODPRISM ??= null; $MRODSPH ??= null; $MRODVA ??= null; $MROSADD ??= null; $MROSAXIS ??= null;
+    $MROSCYL ??= null; $MROSPRISM ??= null; $MROSSPH ??= null; $MROSVA ??= null; $ODACD ??= null;
+    $ODAXIALLENGTH ??= null; $ODECL ??= null; $ODK1 ??= null; $ODK2 ??= null; $ODK2AXIS ??= null;
+    $ODLT ??= null; $ODPDMeasured ??= null; $ODVA ??= null; $ODW2W ??= null; $OSACD ??= null;
+    $OSAXIALLENGTH ??= null; $OSECL ??= null; $OSK1 ??= null; $OSK2 ??= null; $OSK2AXIS ??= null;
+    $OSLT ??= null; $OSPDMeasured ??= null; $OSVA ??= null; $OSW2W ??= null; $PAMODBA ??= null;
+    $PAMODVA ??= null; $PAMOSVA ??= null; $PHODVA ??= null; $PHOSVA ??= null; $RX_TYPE ??= null;
+    $VABINOC ??= null; $date ??= null; $display_Add ??= null; $i ??= null; $id ??= null; $pend ??= null;
+    $pid ??= null;
     $count_rx = '0';
 
     $query = "select * from form_eye_mag_wearing where PID=? and FORM_ID=? ORDER BY RX_NUMBER";
@@ -6695,7 +6350,7 @@ function display_refractive_data($encounter_data): void
               <td><?php echo text($OSLT); ?></td>
               <td><?php echo text($OSW2W); ?></td>
               <td><?php echo text($OSECL); ?></td>
-              <!--  <td><input type=text id="pend" name="pend" value="<?php echo text($pend); ?>"></td> -->
+              <!--  <td><input type=text id="pend" name="pend" value="<?php echo attr($pend); ?>"></td> -->
             </tr>
           </table>
           </td>
@@ -6712,9 +6367,9 @@ function display_refractive_data($encounter_data): void
  * @param $needle
  * @param $haystack
  * @param bool $strict
- * @return bool*
+ * @return bool
  */
-function in_array_r($needle, $haystack, $strict = false)
+function in_array_r($needle, $haystack, $strict = false): bool
 {
     if (empty($haystack)) {
         return false;
@@ -6738,6 +6393,8 @@ function in_array_r($needle, $haystack, $strict = false)
              */
 function getIOPTARGETS($pid, $id, $provider_id)
 {
+    $ODIOPTARGET = '';
+    $OSIOPTARGET = '';
     //iterate through this patient's encounters to find IOPTARGETS.
     //if none use provider's default value, or 21.
     //If a practice is loading old visits into OpenEMR, the visit date and id will not correlate linearly.

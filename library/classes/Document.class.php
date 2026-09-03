@@ -17,12 +17,9 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-require_once(__DIR__ . "/../pnotes.inc.php");
-require_once(__DIR__ . "/../gprelations.inc.php");
-
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Acl\AclMain;
-use OpenEMR\Common\Crypto\KeySource;
+use OpenEMR\Common\Crypto\CryptoGenException;
 use OpenEMR\Common\ORDataObject\ORDataObject;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Common\Utils\ValidationUtils;
@@ -64,6 +61,54 @@ class Document extends ORDataObject
      * Date format for the expires field
      */
     public const EXPIRES_DATE_FORMAT = 'Y-m-d H:i:s';
+
+    /**
+     * Calculate the storage path for a document.
+     *
+     * This encapsulates the (legacy) logic for determining where a document
+     * should be stored, including path sanitization and the random subdirectory
+     * behavior for non-patient documents.
+     *
+     * Note: The patientId is only mutated to 0 when there's no higher level path
+     * AND the patient ID is invalid. In other cases it's returned unchanged.
+     * This matches the legacy behavior where $patient_id was conditionally
+     * reassigned before being used in set_foreign_id().
+     *
+     * @param string $higherLevelPath Optional subdirectory path (will be sanitized)
+     * @param int|string $patientId Patient ID or identifier string
+     * @param int $pathDepth Current path depth
+     * @param int $randomSubdir Random subdirectory number (1-10000) for non-patient docs
+     * @return array{relativePath: string, depth: int, patientId: int|string}
+     */
+    public static function calculateStoragePath(
+        string $higherLevelPath,
+        int|string $patientId,
+        int $pathDepth,
+        int $randomSubdir,
+    ): array {
+        $higherLevelPath = preg_replace("/[^A-Za-z0-9\/]/", "_", $higherLevelPath);
+        $validPatientId = ValidationUtils::validateInt($patientId, min: 1);
+
+        if ($higherLevelPath !== '' && $validPatientId !== false) {
+            $relativePath = $higherLevelPath . '/';
+        } elseif ($higherLevelPath !== '') {
+            $relativePath = $higherLevelPath . '/' . $randomSubdir . '/';
+            ++$pathDepth;
+        } elseif ($validPatientId === false) {
+            $relativePath = $patientId . '/' . $randomSubdir . '/';
+            $pathDepth = 2;
+            $patientId = 0;
+        } else {
+            $relativePath = $patientId . '/';
+            $pathDepth = 1;
+        }
+
+        return [
+            'relativePath' => $relativePath,
+            'depth' => $pathDepth,
+            'patientId' => $patientId,
+        ];
+    }
 
     /**
      * @var string Binary of Unique User Identifier that is for both external reference to this entity and for future offline use.
@@ -233,7 +278,7 @@ class Document extends ORDataObject
         //this uses psuedo-class variables so it is really cheap
         $this->type_array = $this->_load_enum("type");
 
-        $this->type = $this->type_array[0] ?? '';
+        $this->type = array_key_first($this->type_array) ?? '';
         $this->size = 0;
         $this->date = date("Y-m-d H:i:s");
         $this->date_expires = null; // typically no expiration date here
@@ -278,7 +323,7 @@ class Document extends ORDataObject
      *
      * @return bool true if the document expiration date has expired
      */
-    public function has_expired()
+    public function has_expired(): bool
     {
         if (!empty($this->date_expires)) {
             $dateTime = DateTime::createFromFormat("Y-m-d H:i:s", $this->date_expires);
@@ -287,7 +332,7 @@ class Document extends ORDataObject
         return false;
     }
 
-    public function can_patient_access($pid)
+    public function can_patient_access($pid): bool
     {
         $foreignId = $this->get_foreign_id();
         // TODO: if any information blocking rule checks were to be applied, they can be done here
@@ -306,7 +351,7 @@ class Document extends ORDataObject
      *                              If no user is provided it checks against the currently logged in user
      * @return bool True if the passed in user or current user can access this document, false otherwise.
      */
-    public function can_access($username = null)
+    public function can_access($username = null): bool
     {
         $categories = $this->get_categories();
 
@@ -328,7 +373,7 @@ class Document extends ORDataObject
      * Checks if a document has been deleted or not
      * @return bool true if the document is deleted, false otherwise
      */
-    public function is_deleted()
+    public function is_deleted(): bool
     {
         return $this->get_deleted() != 0;
     }
@@ -336,7 +381,7 @@ class Document extends ORDataObject
     /**
      * Handles the deletion of a document
      */
-    public function process_deleted()
+    public function process_deleted(): void
     {
         $this->set_deleted(1);
         $this->persist();
@@ -356,7 +401,7 @@ class Document extends ORDataObject
      * Sets the Document deleted value.  Used by the ORM to set this flag.
      * @param $deleted 1 if deleted, 0 if not
      */
-    public function set_deleted($deleted)
+    public function set_deleted($deleted): void
     {
         $this->deleted = $deleted;
     }
@@ -367,8 +412,9 @@ class Document extends ORDataObject
      * by overwriting the populate method
      * @param int $foreign_id optional id use to limit array on to a specific relation,
      *                        otherwise every document object is returned
+     * @return Document[]
      */
-    function documents_factory($foreign_id = "")
+    public function documents_factory($foreign_id = "")
     {
         $documents = [];
 
@@ -398,7 +444,7 @@ class Document extends ORDataObject
      * it will return documents that are specific that that foreign record.
      * @param string $foreign_reference_table The table name that we are retrieving documents for
      * @param string $foreign_reference_id The table record that this document references
-     * @return array
+     * @return Document[]
      */
     public function documents_factory_for_foreign_reference(string $foreign_reference_table, $foreign_reference_id = "")
     {
@@ -432,7 +478,7 @@ class Document extends ORDataObject
 
         return $documents;
     }
-    public static function getDocumentForUuid($uuid)
+    public static function getDocumentForUuid($uuid): ?Document
     {
         $sql = "SELECT id from " . escape_table_name(self::TABLE_NAME) . " WHERE uuid = ?";
         $id = \OpenEMR\Common\Database\QueryUtils::fetchSingleValue($sql, 'id', [UuidRegistry::uuidToBytes($uuid)]);
@@ -468,7 +514,7 @@ class Document extends ORDataObject
     /**
      * Convenience function to generate string debug data about the object
      */
-    function toString($html = false)
+    public function toString($html = false): string
     {
         $string = "\n"
         . "ID: " . $this->id . "\n"
@@ -494,11 +540,11 @@ class Document extends ORDataObject
     *   Getter/Setter methods used by reflection to affect object in persist/poulate operations
     *   @param mixed new value for given attribute
     */
-    function set_id($id)
+    public function set_id($id): void
     {
         $this->id = $id;
     }
-    function get_id()
+    public function get_id()
     {
         return $this->id;
     }
@@ -507,7 +553,7 @@ class Document extends ORDataObject
      * This is a Patient record id
      * @param $fid Unique database identifier for a patient record
      */
-    function set_foreign_id($fid)
+    public function set_foreign_id($fid): void
     {
         $this->foreign_id = $fid;
     }
@@ -516,7 +562,7 @@ class Document extends ORDataObject
      * Sets the unique database identifier that this Document is referenced to. If unlinking this document
      * with a foreign table you must set $reference_id and $table_name to be null
      */
-    public function set_foreign_reference_id($reference_id)
+    public function set_foreign_reference_id($reference_id): void
     {
         $this->foreign_reference_id = $reference_id;
     }
@@ -525,7 +571,7 @@ class Document extends ORDataObject
      * Sets the table name that this Document references in the foreign_reference_id
      * @param $table_name The database table name
      */
-    public function set_foreign_reference_table($table_name)
+    public function set_foreign_reference_table($table_name): void
     {
         $this->foreign_reference_table = $table_name;
     }
@@ -548,31 +594,31 @@ class Document extends ORDataObject
         return $this->foreign_reference_table;
     }
 
-    function get_foreign_id()
+    public function get_foreign_id()
     {
         return $this->foreign_id;
     }
-    function set_type($type)
+    public function set_type($type): void
     {
         $this->type = $type;
     }
-    function get_type()
+    public function get_type()
     {
         return $this->type;
     }
-    function set_size($size)
+    public function set_size($size): void
     {
         $this->size = $size;
     }
-    function get_size()
+    public function get_size()
     {
         return $this->size;
     }
-    function set_date($date)
+    public function set_date($date): void
     {
         $this->date = $date;
     }
-    function get_date()
+    public function get_date()
     {
         return $this->date;
     }
@@ -580,19 +626,19 @@ class Document extends ORDataObject
     /**
      * @return string|null The datetime that the document expires at
      */
-    function get_date_expires(): ?string
+    public function get_date_expires(): ?string
     {
         return $this->date_expires;
     }
-    function set_hash($hash)
+    public function set_hash($hash): void
     {
         $this->hash = $hash;
     }
-    function get_hash()
+    public function get_hash()
     {
         return $this->hash;
     }
-    function get_hash_algo_title()
+    public function get_hash_algo_title(): string
     {
         if (!empty($this->hash) && strlen((string) $this->hash) < 50) {
             return "SHA1";
@@ -600,26 +646,26 @@ class Document extends ORDataObject
             return "SHA3-512";
         }
     }
-    function set_url($url)
+    public function set_url($url): void
     {
         $this->url = $url;
     }
-    function get_url()
+    public function get_url()
     {
         return $this->url;
     }
-    function set_thumb_url($url)
+    public function set_thumb_url($url): void
     {
         $this->thumb_url = $url;
     }
-    function get_thumb_url()
+    public function get_thumb_url()
     {
         return $this->thumb_url;
     }
     /**
     * get the url without the protocol handler
     */
-    function get_url_filepath()
+    public function get_url_filepath()
     {
         return preg_replace("|^(.*)://|", "", (string) $this->url);
     }
@@ -657,73 +703,73 @@ class Document extends ORDataObject
     /**
     * get the url filename only
     */
-    function get_url_file()
+    public function get_url_file()
     {
         return basename_international(preg_replace("|^(.*)://|", "", (string) $this->url));
     }
     /**
     * get the url path only
     */
-    function get_url_path()
+    public function get_url_path()
     {
         return dirname((string) preg_replace("|^(.*)://|", "", (string) $this->url)) . "/";
     }
-    function get_path_depth()
+    public function get_path_depth()
     {
         return $this->path_depth;
     }
-    function set_path_depth($path_depth)
+    public function set_path_depth($path_depth): void
     {
         $this->path_depth = $path_depth;
     }
-    function set_mimetype($mimetype)
+    public function set_mimetype($mimetype): void
     {
         $this->mimetype = $mimetype;
     }
-    function get_mimetype()
+    public function get_mimetype()
     {
         return $this->mimetype;
     }
-    function set_pages($pages)
+    public function set_pages($pages): void
     {
         $this->pages = $pages;
     }
-    function get_pages()
+    public function get_pages()
     {
         return $this->pages;
     }
-    function set_owner($owner)
+    public function set_owner($owner): void
     {
         $this->owner = $owner;
     }
-    function get_owner()
+    public function get_owner()
     {
         return $this->owner;
     }
     /*
     *   No getter for revision because it is updated automatically by the DB.
     */
-    function set_revision($revision)
+    public function set_revision($revision): void
     {
         $this->revision = $revision;
     }
-    function set_docdate($docdate)
+    public function set_docdate($docdate): void
     {
         $this->docdate = $docdate;
     }
-    function get_docdate()
+    public function get_docdate()
     {
         return $this->docdate;
     }
-    function set_list_id($list_id)
+    public function set_list_id($list_id): void
     {
         $this->list_id = $list_id;
     }
-    function get_list_id()
+    public function get_list_id()
     {
         return $this->list_id;
     }
-    function set_name($name)
+    public function set_name($name): void
     {
         $this->name = $name;
     }
@@ -732,36 +778,36 @@ class Document extends ORDataObject
      * Returns the database human readable filename of the document
      * @return string|null
      */
-    function get_name()
+    public function get_name()
     {
         return $this->name;
     }
-    function set_drive_uuid($drive_uuid)
+    public function set_drive_uuid($drive_uuid): void
     {
         $this->drive_uuid = $drive_uuid;
     }
-    function get_drive_uuid()
+    public function get_drive_uuid()
     {
         return $this->drive_uuid;
     }
-    function set_encounter_id($encounter_id)
+    public function set_encounter_id($encounter_id): void
     {
         $this->encounter_id = $encounter_id;
     }
-    function get_encounter_id()
+    public function get_encounter_id()
     {
         return $this->encounter_id;
     }
-    function set_encounter_check($encounter_check)
+    public function set_encounter_check($encounter_check): void
     {
         $this->encounter_check = $encounter_check;
     }
-    function get_encounter_check()
+    public function get_encounter_check()
     {
         return $this->encounter_check;
     }
 
-    function get_ccr_type($doc_id)
+    public function get_ccr_type($doc_id)
     {
         $type = sqlQuery(
             "SELECT c.name FROM categories AS c
@@ -771,27 +817,27 @@ class Document extends ORDataObject
         );
         return $type['name'];
     }
-    function set_imported($imported)
+    public function set_imported($imported): void
     {
         $this->imported = $imported;
     }
-    function get_imported()
+    public function get_imported()
     {
         return $this->imported;
     }
-    function update_imported($doc_id)
+    public function update_imported($doc_id): void
     {
         sqlQuery("UPDATE documents SET imported = 1 WHERE id = ?", [$doc_id]);
     }
-    function set_encrypted($encrypted)
+    public function set_encrypted($encrypted): void
     {
         $this->encrypted = $encrypted;
     }
-    function get_encrypted()
+    public function get_encrypted()
     {
         return $this->encrypted;
     }
-    function is_encrypted()
+    public function is_encrypted(): bool
     {
         return $this->encrypted == self::ENCRYPTED_ON;
     }
@@ -803,7 +849,7 @@ class Document extends ORDataObject
     *   @param int $fid foreign id that should be used so that this document can be related (joined) on it later
     */
 
-    function persist($fid = "")
+    public function persist($fid = ""): mixed
     {
         if (!empty($fid)) {
             $this->foreign_id = $fid;
@@ -811,40 +857,40 @@ class Document extends ORDataObject
 
         // need to populate our uuid if its empty
 
-        parent::persist();
+        return parent::persist();
     }
 
-    function set_storagemethod($str)
+    public function set_storagemethod($str): void
     {
         $this->storagemethod = $str;
     }
 
-    function get_storagemethod()
+    public function get_storagemethod()
     {
         return $this->storagemethod;
     }
 
-    function set_couch_docid($str)
+    public function set_couch_docid($str): void
     {
         $this->couch_docid = $str;
     }
 
-    function get_couch_docid()
+    public function get_couch_docid()
     {
         return $this->couch_docid;
     }
 
-    function set_couch_revid($str)
+    public function set_couch_revid($str): void
     {
         $this->couch_revid = $str;
     }
 
-    function get_couch_revid()
+    public function get_couch_revid()
     {
         return $this->couch_revid;
     }
 
-    function set_uuid(?string $uuid)
+    public function set_uuid(?string $uuid): void
     {
         $this->uuid = $uuid;
     }
@@ -852,7 +898,7 @@ class Document extends ORDataObject
     /**
      * @return string Binary representation of the uuid for this document
      */
-    function get_uuid()
+    public function get_uuid()
     {
         return $this->uuid;
     }
@@ -861,7 +907,7 @@ class Document extends ORDataObject
     // This just moves some code that used to be in C_Document.class.php,
     // changing it as little as possible since I'm not set up to test it.
     //
-    function change_patient($new_patient_id)
+    public function change_patient($new_patient_id): bool
     {
         // Set the new patient.
         $this->set_foreign_id($new_patient_id);
@@ -876,27 +922,27 @@ class Document extends ORDataObject
    * This is a mix of new code and code moved from C_Document.class.php.
    *
    * @param  string  $patient_id   Patient pid; if not known then this may be a simple directory name
-   * @param  integer $category_id  The desired document category ID
+   * @param int $category_id The desired document category ID
    * @param  string  $filename     The desired filename
    * @param  string  $mimetype     MIME type
    * @param  string  &$data        The actual data to store (not encoded)
    * @param  string  $higher_level_path Optional subdirectory within the local document repository
-   * @param  string  $path_depth   Number of directory levels in $higher_level_path, if specified
-   * @param  integer $owner        Owner/user/service that is requesting this action
+   * @param  int     $path_depth   Number of directory levels in $higher_level_path, if specified
+   * @param int $owner Owner/user/service that is requesting this action
    * @param  string  $tmpfile      The tmp location of file (require for thumbnail generator)
    * @param  string  $date_expires The datetime that the document should no longer be accessible in the system
    * @param  string  $foreign_reference_id The table id to another table record in OpenEMR
    * @param  string  $foreign_reference_table The table name of the foreign_reference_id this document refers to.
    * @return string                Empty string if success, otherwise error message text
    */
-    function createDocument(
+    public function createDocument(
         $patient_id,
         $category_id,
         $filename,
         $mimetype,
         &$data,
         $higher_level_path = '',
-        $path_depth = 1,
+        int $path_depth = 1,
         $owner = 0,
         $tmpfile = null,
         $date_expires = null,
@@ -938,19 +984,23 @@ class Document extends ORDataObject
             $has_thumbnail = false;
         }
 
+        // Note: there used to be couchdb_encryption as a separate toggle, it
+        // was removed in #12000. drive_encryption now controls all files.
+        if (OEGlobalsBag::getInstance()->getBoolean('drive_encryption')) {
+            $this->set_encrypted(self::ENCRYPTED_ON);
+        } else {
+            $this->set_encrypted(self::ENCRYPTED_OFF);
+        }
+
         $encounter_id = $eid;
         $this->storagemethod = OEGlobalsBag::getInstance()->get('document_storage_method');
         $this->mimetype = $mimetype;
         if ($this->storagemethod == self::STORAGE_METHOD_COUCHDB) {
             // Store it using CouchDB.
-            if (OEGlobalsBag::getInstance()->getBoolean('couchdb_encryption')) {
-                $document = $cryptoGen->encryptStandard($data, keySource: KeySource::Database);
-            } else {
-                $document = base64_encode($data);
-            }
+            $document = $this->is_encrypted() ? $cryptoGen->encryptForFilesystem($data) : base64_encode($data);
             if ($has_thumbnail) {
-                if (OEGlobalsBag::getInstance()->getBoolean('couchdb_encryption')) {
-                    $th_document = $cryptoGen->encryptStandard($thumbnail_data, keySource: KeySource::Database);
+                if ($this->is_encrypted()) {
+                    $th_document = $cryptoGen->encryptForFilesystem($thumbnail_data);
                 } else {
                     $th_document = base64_encode($thumbnail_data);
                 }
@@ -1000,28 +1050,15 @@ class Document extends ORDataObject
 
             // Storing document files locally.
             $repository = OEGlobalsBag::getInstance()->get('oer_config')['documents']['repository'];
-            $higher_level_path = preg_replace("/[^A-Za-z0-9\/]/", "_", $higher_level_path);
-            $validPatientId = ValidationUtils::validateInt($patient_id, min: 1);
-            if ((!empty($higher_level_path)) && $validPatientId !== false) {
-                // Allow higher level directory structure in documents directory and a patient is mapped.
-                $filepath = $repository . $higher_level_path . "/";
-            } elseif (!empty($higher_level_path)) {
-                // Allow higher level directory structure in documents directory and there is no patient mapping
-                // (will create up to 10000 random directories and increment the path_depth by 1).
-                $filepath = $repository . $higher_level_path . '/' . random_int(1, 10000)  . '/';
-                ++$path_depth;
-            } elseif ($validPatientId === false) {
-                // This is the default action except there is no patient mapping (when patient_id is 00 or direct)
-                // (will create up to 10000 random directories and set the path_depth to 2).
-                $filepath = $repository . $patient_id . '/' . random_int(1, 10000)  . '/';
-                $path_depth = 2;
-                $patient_id = 0;
-            } else {
-                // This is the default action where the patient is used as one level directory structure
-                // in documents directory.
-                $filepath = $repository . $patient_id . '/';
-                $path_depth = 1;
-            }
+            $storagePathResult = self::calculateStoragePath(
+                higherLevelPath: $higher_level_path,
+                patientId: $patient_id,
+                pathDepth: $path_depth,
+                randomSubdir: random_int(1, 10000),
+            );
+            $filepath = $repository . $storagePathResult['relativePath'];
+            $path_depth = $storagePathResult['depth'];
+            $patient_id = $storagePathResult['patientId'];
 
             if (!file_exists($filepath)) {
                 if (!mkdir($filepath, 0700, true)) {
@@ -1034,13 +1071,11 @@ class Document extends ORDataObject
             $filenameUuid = UuidRegistry::uuidToString($this->drive_uuid);
 
             $this->url = "file://" . $filepath . $filenameUuid;
-            if (is_numeric($path_depth)) {
-                // this is for when directory structure is more than one level
-                $this->path_depth = $path_depth;
-            }
+            // this is for when directory structure is more than one level
+            $this->path_depth = $path_depth;
 
             // Store the file.
-            $storedData = OEGlobalsBag::getInstance()->getBoolean('drive_encryption') ? $cryptoGen->encryptStandard($data, keySource: KeySource::Database) : $data;
+            $storedData = $cryptoGen->encryptForFilesystem($data);
             if (file_exists($filepath . $filenameUuid)) {
                 // this should never happen with current uuid mechanism
                 return xl('Failed since file already exists') . " $filepath$filenameUuid";
@@ -1052,11 +1087,7 @@ class Document extends ORDataObject
             if ($has_thumbnail) {
                 // Store the thumbnail.
                 $this->thumb_url = "file://" . $filepath . $this->get_thumb_name($filenameUuid);
-                if (OEGlobalsBag::getInstance()->getBoolean('drive_encryption')) {
-                    $storedThumbnailData = $cryptoGen->encryptStandard($thumbnail_data, keySource: KeySource::Database);
-                } else {
-                    $storedThumbnailData = $thumbnail_data;
-                }
+                $storedThumbnailData = $cryptoGen->encryptForFilesystem($thumbnail_data);
                 if (file_exists($filepath . $this->get_thumb_name($filenameUuid))) {
                     // this should never happen with current uuid mechanism
                     return xl('Failed since file already exists') .  $filepath . $this->get_thumb_name($filenameUuid);
@@ -1072,14 +1103,6 @@ class Document extends ORDataObject
             }
         }
 
-        if (
-            (OEGlobalsBag::getInstance()->getBoolean('drive_encryption') && ($this->storagemethod != 1))
-            || (OEGlobalsBag::getInstance()->getBoolean('couchdb_encryption') && ($this->storagemethod == 1))
-        ) {
-            $this->set_encrypted(self::ENCRYPTED_ON);
-        } else {
-            $this->set_encrypted(self::ENCRYPTED_OFF);
-        }
         // we need our external unique reference identifier that can be mapped back to our table.
         $docUUID = (new UuidRegistry(['table_name' => $this->_table]))->createUuid();
         $this->set_uuid($docUUID);
@@ -1104,13 +1127,12 @@ class Document extends ORDataObject
     /**
      * Retrieves the document data that has been saved to the filesystem or couch db.  If the $force_no_decrypt flag is
      * set to true, it will return the encrypted version of the data for the document.
-     * @param bool $force_no_decrypt True if the document should have its data returned encrypted, false otherwise
      * @throws BadMethodCallException Thrown if the method is called when the document has been marked as deleted
      *                                or expired
      * @return false|string Returns false if the data failed to decrypt, or a string if the data decrypts
      *                      or is unencrypted.
      */
-    function get_data($force_no_decrypt = false)
+    public function get_data()
     {
         $storagemethod = $this->get_storagemethod();
 
@@ -1139,7 +1161,7 @@ class Document extends ORDataObject
         }
 
         if (!empty($data)) {
-            if ($this->is_encrypted() && !$force_no_decrypt) {
+            if ($this->is_encrypted()) {
                 $data = $this->decrypt_content($data);
             }
             if ($base64Decode) {
@@ -1158,9 +1180,10 @@ class Document extends ORDataObject
     public function decrypt_content($data)
     {
         $cryptoGen = ServiceContainer::getCrypto();
-        $decryptedData = $cryptoGen->decryptStandard($data, keySource: KeySource::Database);
-        if ($decryptedData === false) {
-            throw new RuntimeException("Failed to decrypt the data");
+        try {
+            $decryptedData = $cryptoGen->decryptFromFilesystem($data);
+        } catch (CryptoGenException $e) {
+            throw new RuntimeException("Failed to decrypt the data", previous: $e);
         }
         return $decryptedData;
     }
@@ -1195,9 +1218,10 @@ class Document extends ORDataObject
     }
 
   /**
+   * @param string $file_name
    * Return file name for thumbnail (adding 'th_')
    */
-    function get_thumb_name($file_name)
+    public function get_thumb_name($file_name): string
     {
         return 'th_' . $file_name;
     }
@@ -1206,10 +1230,10 @@ class Document extends ORDataObject
    * Post a patient note that is linked to this document.
    *
    * @param  string  $provider     Login name of the provider to receive this note.
-   * @param  integer $category_id  The desired document category ID
+   * @param int $category_id The desired document category ID
    * @param  string  $message      Any desired message text for the note.
    */
-    function postPatientNote($provider, $category_id, $message = '')
+    public function postPatientNote($provider, $category_id, $message = '')
     {
         // Build note text in a way that identifies the new document.
         // See pnotes_full.php which uses this to auto-display the document.
@@ -1233,8 +1257,9 @@ class Document extends ORDataObject
   /**
    * Return note objects associated with this document using Note::notes_factory
    *
+   * @return array<int, Note>
    */
-    function get_notes()
+    public function get_notes(): array
     {
         return (Note::notes_factory($this->get_id()));
     }

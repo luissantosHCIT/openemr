@@ -20,8 +20,6 @@
 
 require_once "../globals.php";
 require_once "../../custom/code_types.inc.php";
-require_once "$srcdir/patient.inc.php";
-require_once "$srcdir/options.inc.php";
 
 use OpenEMR\Billing\BillingReport;
 use OpenEMR\Common\Acl\AccessDeniedHelper;
@@ -33,12 +31,15 @@ use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\OeUI\OemrUI;
 
+require_once OEGlobalsBag::getInstance()->getSrcDir() . '/patient.inc.php';
+require_once OEGlobalsBag::getInstance()->getSrcDir() . '/options.inc.php';
+
 //ensure user has proper access
 if (!AclMain::aclCheckCore('acct', 'eob', '', 'write') && !AclMain::aclCheckCore('acct', 'bill', '', 'write')) {
     AccessDeniedHelper::denyWithTemplate("ACL check failed for acct/eob or acct/bill: Billing Manager", xl("Billing Manager"));
 }
 
-$EXPORT_INC = "$webserver_root/custom/BillingExport.php";
+$EXPORT_INC = OEGlobalsBag::getInstance()->getString('webserver_root') . '/custom/BillingExport.php';
 // echo $GLOBALS['daysheet_provider_totals'];
 
 $daysheet = false;
@@ -100,6 +101,9 @@ if ($left_margin + 0 === 20 && $top_margin + 0 === 24) {
     $left_margin = '24';
     $top_margin = '20';
 }
+$ub04_support = OEGlobalsBag::getInstance()->getBoolean('ub04_support');
+$left_ubmargin = 0;
+$top_ubmargin = 0;
 if ($ub04_support) {
     $left_ubmargin = $_POST["left_ubmargin"] ?? OEGlobalsBag::getInstance()->getInt('left_ubmargin_default');
     $top_ubmargin = $_POST["top_ubmargin"] ?? OEGlobalsBag::getInstance()->getInt('top_ubmargin_default');
@@ -333,6 +337,17 @@ $partners = $x->_utility_array($x->x12_partner_factory());
             f.bn_reopen.disabled = !can_bill;
             <?php } ?>
             f.bn_mark.disabled = !can_mark;
+            oeSyncClaimRowStates();
+        }
+
+        // Mirrors checkbox state onto the encounter's rows so the whole block
+        // shows as selected. The checkbox remains the source of truth.
+        function oeSyncClaimRowStates() {
+            $('.oe-claim-row').each(function () {
+                var enc = $(this).data('encounter');
+                var $cb = $('input[name="claims[' + enc + '][bill]"]');
+                $(this).toggleClass('oe-selected', $cb.length > 0 && $cb.prop('checked'));
+            });
         }
 
         async function toInsurance(type, pid, pubpid, pname, enc, datestr, dobstr, enc_pid_array, enc_date_array, cal_cat_array) {
@@ -368,7 +383,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                 set_encounterid: enc,
                 set_pid: newpid
             });
-            top.RTop.location = "<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/patient_file/summary/demographics.php?" + params;
+            top.RTop.location = "<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/patient_file/summary/demographics.php?" + params;
         }
 
         function popMBO(pid, enc, mboid) {
@@ -382,7 +397,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                 isBilling: '1',
                 pid: pid
             });
-            const href = "<?php echo OEGlobalsBag::getInstance()->get('web_root')?>/interface/patient_file/encounter/view_form.php?" + params;
+            const href = "<?php echo OEGlobalsBag::getInstance()->getWebRoot()?>/interface/patient_file/encounter/view_form.php?" + params;
             dlgopen(href, 'mbopop', 'modal-lg', 750, false, '', {
                 sizeHeight: 'full' // override min height auto size.
             });
@@ -397,7 +412,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                 enc: enc,
                 pid: pid
             });
-            const href = "<?php echo OEGlobalsBag::getInstance()->get('web_root')?>/interface/billing/ub04_form.php?" + params;
+            const href = "<?php echo OEGlobalsBag::getInstance()->getWebRoot()?>/interface/billing/ub04_form.php?" + params;
             dlgopen(href, 'ub04pop', 1175, 750, false, '', {
                 sizeHeight: 'full' // override min height auto size.
             });
@@ -526,10 +541,10 @@ $partners = $x->_utility_array($x->x12_partner_factory());
             return true;
         }
     </script>
-    <?php require_once "$srcdir/../interface/reports/report.script.php"; ?>
+    <?php require_once OEGlobalsBag::getInstance()->getSrcDir() . '/../interface/reports/report.script.php'; ?>
     <!-- Criteria Section common javascript page-->
     <!-- =============Included for Insurance ajax criteria==== -->
-    <?php require_once OEGlobalsBag::getInstance()->get('srcdir') . "/ajax/payment_ajax_jav.inc.php"; ?>
+    <?php require_once OEGlobalsBag::getInstance()->getSrcDir() . "/ajax/payment_ajax_jav.inc.php"; ?>
     <style>
         #ajax_div_insurance {
             position: absolute;
@@ -728,7 +743,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                         }
                         ?>
                     <?php
-                        require_once "$srcdir/../interface/reports/criteria.tab.php";
+                        require_once OEGlobalsBag::getInstance()->getSrcDir() . '/../interface/reports/criteria.tab.php';
                     ?>
                     <!-- end criteria -->
                 </form>
@@ -881,15 +896,33 @@ $partners = $x->_utility_array($x->x12_partner_factory());
             if (isset($_POST["mode"]) && $_POST["mode"] == "bill") {
                 BillingReport::billCodesList($list);
             }
+            // The units column renders empty unless this global is on, so it is
+            // omitted entirely rather than eating layout width. Column count is
+            // derived from it because the spacer rows need a matching colspan.
+            $showUnits = OEGlobalsBag::getInstance()->getBoolean('display_units_in_billing');
+            $colCount = $showUnits ? '9' : '8';
             ?>
             <div class="table-responsive">
                 <table class="table table-sm">
+                    <colgroup>
+                        <col style="width: 22%">
+                        <col style="width: 4rem">
+                        <col style="width: 12%">
+                        <col style="width: 5rem">
+                        <col style="width: 8rem">
+                        <?php if ($showUnits) { ?>
+                        <col style="width: 3rem">
+                        <?php } ?>
+                        <col style="width: 6rem">
+                        <col style="width: 2rem">
+                        <col style="width: 2.5rem">
+                    </colgroup>
                     <?php
                     $divnos = 0;
                     if ($ret = BillingReport::getBillsBetween("%")) {
                         if (is_array($ret)) { ?>
                     <tr>
-                        <td class="text-right" colspan='9'>
+                        <td class="text-right" colspan='<?php echo attr($colCount); ?>'>
                             <table>
                                 <tr>
                                     <td id='expandAllCollapseAll'>
@@ -923,6 +956,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                         $mmo_num_charges = 0;
                         $encount = 0;
                         $divPut = false;
+                        $CheckBoxBilling = 0;
 
                         foreach ($ret as $iter) {
                         // We include encounters here that have never been billed. However
@@ -950,7 +984,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                             // This dumps all HTML for the previous encounter.
                                 if ($lhtml) {
                                     while ($rcount < $lcount) {
-                                        $rhtml .= "<tr style='background-color: " . attr($bgcolor) . ";'><td colspan='9'></td></tr>";
+                                        $rhtml .= "<tr class='oe-claim-row' data-encounter='" . attr($last_encounter_id) . "' style='background-color: " . attr($bgcolor) . ";'><td colspan='" . attr($colCount) . "'></td></tr>";
                                         ++$rcount;
                                     }
                                     // This test handles the case where we are only listing encounters
@@ -960,8 +994,8 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                             $lhtml .= '</div>';
                                             $divPut = false;
                                         }
-                                        echo "<tr style='background-color: " . attr($bgcolor) . ";'>\n<td class='align-top' rowspan='" . attr($rcount) . "'>\n$lhtml</td>$rhtml\n";
-                                        echo "<tr style='background-color: " . attr($bgcolor) . ";'><td colspan='9' height='5'></td></tr>\n\n";
+                                        echo "<tr class='oe-claim-row' data-encounter='" . attr($last_encounter_id) . "' style='background-color: " . attr($bgcolor) . ";'>\n<td class='align-top' rowspan='" . attr($rcount) . "'>\n$lhtml</td>$rhtml\n";
+                                        echo "<tr style='background-color: " . attr($bgcolor) . ";'><td colspan='" . attr($colCount) . "' height='5'></td></tr>\n\n";
                                         ++$encount;
                                     }
                                 }
@@ -1014,10 +1048,12 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                 $namecolor = ($res['count'] > 0) ? "black" : "#ff7777";
 
                                 $bgcolor = (($encount & 1) ? "var(--light)" : "var(--gray300)");
-                                echo "<tr style='background-color: " . attr($bgcolor) . ";'><td colspan='9' height='5'></td></tr>\n";
+                                echo "<tr style='background-color: " . attr($bgcolor) . ";'><td colspan='" . attr($colCount) . "' height='5'></td></tr>\n";
                                 $lcount = 1;
                                 $rcount = 0;
                                 $oldcode = "";
+                                $enc_billing_note ??= [];
+                                $default_x12_partner = null;
 
                                 $ptname = $name['fname'] . " " . $name['lname'];
                                 $raw_encounter_date = date("Y-m-d", strtotime((string) $iter['enc_date']));
@@ -1253,9 +1289,9 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                             ++$rcount;
 
                             if ($rhtml) {
-                                $rhtml .= "<tr style='background-color: " . attr($bgcolor) . ";'>\n";
+                                $rhtml .= "<tr class='oe-claim-row' data-encounter='" . attr($this_encounter_id) . "' style='background-color: " . attr($bgcolor) . ";'>\n";
                             }
-                            $rhtml .= "<td width='50'>";
+                            $rhtml .= "<td>";
                             if ($iter['id'] && $oldcode != $iter['code_type']) {
                                 $rhtml .= "<span class='text'>" . text($iter['code_type']) . ": </span>";
                             }
@@ -1285,31 +1321,31 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                             }
                             $rhtml .= "</span><span style='font-size:8pt;'>$justify</span></td>\n";
 
-                            $rhtml .= '<td align="right"><span style="font-size:8pt;">&nbsp;&nbsp;&nbsp;';
+                            $rhtml .= '<td class="text-right text-nowrap px-2"><span style="font-size:8pt;">';
                             if ($iter['id'] && $iter['fee'] > 0) {
                                 $rhtml .= text(oeFormatMoney($iter['fee']));
                             }
                             $rhtml .= "</span></td>\n";
-                            $rhtml .= '<td><span style="font-size:8pt; font-weight:900; background:#ffff9e">&nbsp;&nbsp;&nbsp;';
+                            $rhtml .= '<td class="px-2"><span style="font-size:8pt; font-weight:900; background:#ffff9e">';
                             if ($iter['id']) {
                                 $rhtml .= getProviderName(empty($iter['provider_id']) ? text($iter['enc_provider_id']) : text($iter['provider_id']));
                             }
                             $rhtml .= "</span></td>\n";
-                            $rhtml .= '<td><span style="font-size:8pt;">&nbsp;&nbsp;&nbsp;';
-                            if (OEGlobalsBag::getInstance()->getBoolean('display_units_in_billing')) {
+                            if ($showUnits) {
+                                $rhtml .= '<td class="px-2"><span style="font-size:8pt;">';
                                 if ($iter['id']) {
                                     $rhtml .= xlt("Units") . ":" . text($iter["units"]);
                                 }
+                                $rhtml .= "</span></td>\n";
                             }
-                            $rhtml .= "</span></td>\n";
-                            $rhtml .= '<td width="100">&nbsp;&nbsp;&nbsp;<span style="font-size:8pt;">';
+                            $rhtml .= '<td class="text-nowrap px-2"><span style="font-size:8pt;">';
                             if ($iter['id']) {
                                 $rhtml .= text(oeFormatSDFT(strtotime((string) $iter["date"])));
                             }
                             $rhtml .= "</span></td>\n";
 // This error message is generated if the authorized check box is not checked
                             if ($iter['id'] && $iter['authorized'] != 1) {
-                                $rhtml .= "<td><span class='alert'>" . xlt("Note: This code has not been authorized.") . "</span></td>\n";
+                                $rhtml .= "<td class='text-center'><i class='fa fa-exclamation-triangle text-danger' title='" . attr(xl("Note: This code has not been authorized.")) . "'></i><span class='sr-only'>" . xlt("Note: This code has not been authorized.") . "</span></td>\n";
                             } else {
                                 $rhtml .= "<td></td>\n";
                             }
@@ -1318,8 +1354,8 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                 if ($tmpbpr == '0' && $iter['billed']) {
                                     $tmpbpr = '2';
                                 }
-                                $rhtml .= "<td><input type='checkbox' value='" . attr($tmpbpr) . "' name='claims[" . attr($this_encounter_id) . "][bill]' onclick='set_button_states()' id='CheckBoxBilling" . attr(($CheckBoxBilling ?? null) * 1) . "'>&nbsp;</td>\n";
-                                $CheckBoxBilling = ($CheckBoxBilling ?? null) + 1;
+                                $rhtml .= "<td class='text-center'><input type='checkbox' value='" . attr($tmpbpr) . "' name='claims[" . attr($this_encounter_id) . "][bill]' onclick='set_button_states()' id='CheckBoxBilling" . $CheckBoxBilling . "' aria-label='" . attr(xl("Select claim for billing")) . "'></td>\n";
+                                $CheckBoxBilling++;
                             } else {
                                 $rhtml .= "<td></td>\n";
                             }
@@ -1346,28 +1382,30 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                     $date = $rowMoneyGot['date'];
                                     if ($PatientPay > 0) {
                                         if ($rhtml) {
-                                            $rhtml2 .= "<tr style='background-color: " . attr($bgcolor) . ";'>\n";
+                                            $rhtml2 .= "<tr class='oe-claim-row' data-encounter='" . attr($this_encounter_id) . "' style='background-color: " . attr($bgcolor) . ";'>\n";
                                         }
-                                        $rhtml2 .= "<td width='50'>";
+                                        $rhtml2 .= "<td>";
                                         $rhtml2 .= "<span class='text'>" . xlt('COPAY') . ": </span>";
                                         $rhtml2 .= "</td>\n";
                                         $rhtml2 .= "<td><span class='text'>" . text(oeFormatMoney($PatientPay)) . "</span><span style='font-size:8pt;'>&nbsp;</span></td>\n";
-                                        $rhtml2 .= '<td align="right"><span style="font-size:8pt;">&nbsp;&nbsp;&nbsp;';
+                                        $rhtml2 .= '<td class="text-right text-nowrap px-2"><span style="font-size:8pt;">';
                                         $rhtml2 .= "</span></td>\n";
-                                        $rhtml2 .= '<td><span style="font-size:8pt;">&nbsp;&nbsp;&nbsp;';
+                                        $rhtml2 .= '<td class="px-2"><span style="font-size:8pt;">';
                                         $rhtml2 .= "</span></td>\n";
-                                        $rhtml2 .= '<td><span style="font-size:8pt;">&nbsp;&nbsp;&nbsp;';
-                                        $rhtml2 .= "</span></td>\n";
-                                        $rhtml2 .= '<td width=100>&nbsp;&nbsp;&nbsp;<span style="font-size:8pt;">';
+                                        if ($showUnits) {
+                                            $rhtml2 .= '<td class="px-2"><span style="font-size:8pt;">';
+                                            $rhtml2 .= "</span></td>\n";
+                                        }
+                                        $rhtml2 .= '<td class="text-nowrap px-2"><span style="font-size:8pt;">';
                                         $rhtml2 .= text(oeFormatSDFT(strtotime((string) $date)));
                                         $rhtml2 .= "</span></td>\n";
                                         if ($iter['id'] && $iter['authorized'] != 1) {
-                                            $rhtml2 .= "<td><span class='alert'>" . xlt("Note: This copay was entered against billing that has not been authorized. Please review status.") . "</span></td>\n";
+                                            $rhtml2 .= "<td class='text-center'><i class='fa fa-exclamation-triangle text-danger' title='" . attr(xl("Note: This copay was entered against billing that has not been authorized. Please review status.")) . "'></i><span class='sr-only'>" . xlt("Note: This copay was entered against billing that has not been authorized. Please review status.") . "</span></td>\n";
                                         } else {
                                             $rhtml2 .= "<td></td>\n";
                                         }
                                         if (!$iter['id'] && $rowcnt == 1) {
-                                            $rhtml2 .= "<td><input type='checkbox' value='0' name='claims[" . attr($this_encounter_id) . "][bill]' onclick='set_button_states()' id='CheckBoxBilling" . attr($CheckBoxBilling * 1) . "'>&nbsp;</td>\n";
+                                            $rhtml2 .= "<td class='text-center'><input type='checkbox' value='0' name='claims[" . attr($this_encounter_id) . "][bill]' onclick='set_button_states()' id='CheckBoxBilling" . $CheckBoxBilling . "' aria-label='" . attr(xl("Select claim for billing")) . "'></td>\n";
                                             $CheckBoxBilling++;
                                         } else {
                                             $rhtml2 .= "<td></td>\n";
@@ -1382,7 +1420,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
 
                         if ($lhtml) {
                             while ($rcount < $lcount) {
-                                $rhtml .= "<tr style='background-color: " . attr($bgcolor) . ";'><td colspan='9'></td></tr>";
+                                $rhtml .= "<tr class='oe-claim-row' data-encounter='" . attr($last_encounter_id) . "' style='background-color: " . attr($bgcolor) . ";'><td colspan='" . attr($colCount) . "'></td></tr>";
                                 ++$rcount;
                             }
                             if (!$missing_mods_only || ($mmo_empty_mod && $mmo_num_charges > 1)) {
@@ -1390,8 +1428,8 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                     $lhtml .= '</div>';
                                     $divPut = false;
                                 }
-                                echo "<tr style='background-color: " . attr($bgcolor) . ";'>\n<td rowspan='" . attr($rcount) . "' valign='top' width='25%'>\n$lhtml</td>$rhtml\n";
-                                echo "<tr style='background-color: " . attr($bgcolor) . ";'><td colspan='9' height='5'></td></tr>\n";
+                                echo "<tr class='oe-claim-row' data-encounter='" . attr($last_encounter_id) . "' style='background-color: " . attr($bgcolor) . ";'>\n<td class='align-top' rowspan='" . attr($rcount) . "'>\n$lhtml</td>$rhtml\n";
+                                echo "<tr style='background-color: " . attr($bgcolor) . ";'><td colspan='" . attr($colCount) . "' height='5'></td></tr>\n";
                             }
                         }
                     }
@@ -1413,6 +1451,22 @@ $partners = $x->_utility_array($x->x12_partner_factory());
         }
         ?>
         $(function () {
+            // Click anywhere in a claim block to toggle its checkbox. Clicks that
+            // landed on a real control are left alone -- the block contains the
+            // payer and X12 selects, the encounter buttons and the expand link.
+            $(document).on('click', '.oe-claim-row', function (e) {
+                if ($(e.target).closest('a, button, select, input, label, textarea, .btn').length) {
+                    return;
+                }
+                var enc = $(this).data('encounter');
+                var $cb = $('input[name="claims[' + enc + '][bill]"]');
+                if (!$cb.length) {
+                    return;
+                }
+                $cb.prop('checked', !$cb.prop('checked'));
+                set_button_states();
+            });
+
             $("#view-log-link").click(function() {
                 top.restoreSession();
                 dlgopen('customize_log.php', '_blank', 750, 400);
@@ -1451,7 +1505,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                 <?php $datetimepicker_timepicker = false; ?>
                 <?php $datetimepicker_showseconds = false; ?>
                 <?php $datetimepicker_formatInput = false; ?>
-                <?php require OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'; ?>
+                <?php require OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'; ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
             // jquery-ui tooltip converted to bootstrap tooltip

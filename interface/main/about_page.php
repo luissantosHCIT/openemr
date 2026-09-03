@@ -22,15 +22,14 @@
 
 require_once("../globals.php");
 
-use OpenEMR\Common\Twig\TwigContainer;
+use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Uuid\UniqueInstallationUuid;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Core\TemplatePageEvent;
 use OpenEMR\Services\ProductRegistrationService;
 use OpenEMR\Services\VersionService;
 
-$twig = new TwigContainer();
-$t = $twig->getTwig();
+$t = ServiceContainer::getTwig();
 
 $versionService = new VersionService();
 
@@ -45,7 +44,7 @@ $emailRegistered = (new ProductRegistrationService())->getRegistrationEmail() ??
 $viewArgs = [
     'onlineSupportHref' => OEGlobalsBag::getInstance()->getString("online_support_link"),
     'ackHref' => "../../acknowledge_license_cert.html",
-    'applicationTitle' => $openemr_name,
+    'applicationTitle' => OEGlobalsBag::getInstance()->getString('openemr_name'),
     'versionNumber' => (string) $versionService->getSoftwareVersion(),
     'supportPhoneNumber' => OEGlobalsBag::getInstance()->getString('support_phone_number') ?? false,
     'theUUID' => UniqueInstallationUuid::getUniqueInstallationUuid(),

@@ -275,15 +275,13 @@ class FHIRMedicinalProductAuthorizationProcedure extends FHIRBackboneElement imp
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<MedicinalProductAuthorizationProcedure xmlns="http://hl7.org/fhir"></MedicinalProductAuthorizationProcedure>');
-        }
+        $sxe ??= new \SimpleXMLElement('<MedicinalProductAuthorizationProcedure xmlns="http://hl7.org/fhir"></MedicinalProductAuthorizationProcedure>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->identifier)) {
             $this->identifier->xmlSerialize(true, $sxe->addChild('identifier'));

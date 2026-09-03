@@ -107,12 +107,12 @@ function getProcedureProvider($prov_id): array|bool
  */
 function getLabProviders($prov_id): ?array
 {
-
     $sql = "select fname, lname from users where authorized = 1 and active = 1 and username != '' and id = ?";
     $rez = sqlQuery($sql, [$prov_id]);
 
-
-    return $rez;
+    // sqlQuery returns false when no row matches; the declared return type is
+    // ?array, so coerce to null.
+    return is_array($rez) ? $rez : null;
 }
 
 /*
@@ -150,8 +150,8 @@ function getBarId($lab_id, $pid): bool|array|string|null
 
 /**
  *
- * @param <type> $facilityID
- * @return <type> the result set, false if the input is malformed
+ * @param mixed $facilityID
+ * @return mixed the result set, false if the input is malformed
  */
 function getFacilityInfo($facilityID): bool|array
 {

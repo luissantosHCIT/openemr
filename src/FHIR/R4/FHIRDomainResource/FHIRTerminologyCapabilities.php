@@ -918,15 +918,13 @@ class FHIRTerminologyCapabilities extends FHIRDomainResource implements \JsonSer
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<TerminologyCapabilities xmlns="http://hl7.org/fhir"></TerminologyCapabilities>');
-        }
+        $sxe ??= new \SimpleXMLElement('<TerminologyCapabilities xmlns="http://hl7.org/fhir"></TerminologyCapabilities>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->url)) {
             $this->url->xmlSerialize(true, $sxe->addChild('url'));

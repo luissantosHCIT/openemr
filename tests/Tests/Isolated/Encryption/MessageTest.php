@@ -4,7 +4,7 @@
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Eric Stern <erics@opencoreemr.com>
- * @copyright Copyright (c) 2026 OpenCoreEMR
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -65,7 +65,7 @@ class MessageTest extends TestCase
     {
         $data = $this->fixtures->getCiphertext(7);
         $message = Message::parse($data);
-        assert($message->format === MessageFormat::ImplicitKey);
+        self::assertSame(MessageFormat::ImplicitKey, $message->format);
         $reencoded = $message->encode();
         self::assertSame($data, $reencoded);
     }

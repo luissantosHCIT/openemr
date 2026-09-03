@@ -24,27 +24,33 @@ TODO: Code cleanup */
 
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Session\SessionUtil;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Forms\EyeMag\IssueQuickPick;
 
 $form_folder = "eye_mag";
 require_once('../../globals.php');
 
 
-require_once(OEGlobalsBag::getInstance()->get('srcdir') . '/lists.inc.php');
-require_once(OEGlobalsBag::getInstance()->get('srcdir') . '/patient.inc.php');
-require_once(OEGlobalsBag::getInstance()->get('srcdir') . '/options.inc.php');
-require_once(OEGlobalsBag::getInstance()->get('fileroot') . '/custom/code_types.inc.php');
-require_once(OEGlobalsBag::getInstance()->get('srcdir') . '/csv_like_join.php');
+require_once(OEGlobalsBag::getInstance()->getSrcDir() . '/lists.inc.php');
+require_once(OEGlobalsBag::getInstance()->getSrcDir() . '/patient.inc.php');
+require_once(OEGlobalsBag::getInstance()->getSrcDir() . '/options.inc.php');
+require_once(OEGlobalsBag::getInstance()->getProjectDir() . '/custom/code_types.inc.php');
 require_once("../../forms/" . $form_folder . "/php/" . $form_folder . "_functions.php");
 
 
-$pid = (int) (empty($_REQUEST['pid']) ? $pid : $_REQUEST['pid']);
+$session = SessionWrapperFactory::getInstance()->getActiveSession();
+$pid = (int) ($_REQUEST['pid'] ?? $session->get('pid', 0));
 $info_msg = "";
 
-$session = SessionWrapperFactory::getInstance()->getActiveSession();
+// $ISSUE_TYPES and $ISSUE_CLASSIFICATIONS are populated by lists.inc.php
+// (required above) at file scope; declare defaults so PHPStan can verify the
+// reads below.
+$ISSUE_TYPES ??= [];
+$ISSUE_CLASSIFICATIONS ??= [];
 
 // A nonempty thisenc means we are to link the issue to the encounter.
 // ie. we are going to use this as a billing issue?
@@ -54,9 +60,6 @@ $encounter = 0 + (empty($_REQUEST['encounter']) ? $session->get('encounter') : $
 $issue = $_REQUEST['issue'] ?? '';
 $deletion = $_REQUEST['deletion'] ?? '';
 $form_save = $_REQUEST['form_save'] ?? '';
-if (!$pid) {
-    $pid = $session->get('pid');
-}
 
 $form_id = $_REQUEST['form_id'];
 $form_type = $_REQUEST['form_type'];
@@ -83,6 +86,7 @@ if (!($session->get('providerID') ?? '') && $providerID) {
 }
 
 $irow = [];
+$subtype = '';
 if ($issue) {
     $irow = sqlQuery("SELECT * FROM lists WHERE id = ?", [
         $issue
@@ -92,6 +96,7 @@ if ($issue) {
     $irow['subtype'] = $subtype;
 }
 
+$type_index = 0;
 if (!empty($irow['type'])) {
     foreach ($ISSUE_TYPES as $key => $value) {
         if ($key == $irow['type']) {
@@ -101,15 +106,24 @@ if (!empty($irow['type'])) {
     }
 }
 
-$given = "ROSGENERAL,ROSHEENT,ROSCV,ROSPULM,ROSGI,ROSGU,ROSDERM,ROSNEURO,ROSPSYCH,ROSMUSCULO,ROSIMMUNO,ROSENDOCRINE,ROSCOMMENTS";
-$query = "SELECT $given from form_eye_ros where id=? and pid=?";
-$rres = sqlQuery($query, [
-    $form_id,
-    $pid
-]);
-foreach (explode(',', $given) as $item) {
-    ${$item} = $rres[$item];
-}
+$rres = sqlQuery(
+    "SELECT ROSGENERAL, ROSHEENT, ROSCV, ROSPULM, ROSGI, ROSGU, ROSDERM, ROSNEURO, ROSPSYCH, ROSMUSCULO, ROSIMMUNO, ROSENDOCRINE, ROSCOMMENTS"
+    . " FROM form_eye_ros WHERE id = ? AND pid = ?",
+    [$form_id, $pid]
+);
+$ROSGENERAL    = $rres['ROSGENERAL']    ?? '';
+$ROSHEENT      = $rres['ROSHEENT']      ?? '';
+$ROSCV         = $rres['ROSCV']         ?? '';
+$ROSPULM       = $rres['ROSPULM']       ?? '';
+$ROSGI         = $rres['ROSGI']         ?? '';
+$ROSGU         = $rres['ROSGU']         ?? '';
+$ROSDERM       = $rres['ROSDERM']       ?? '';
+$ROSNEURO      = $rres['ROSNEURO']      ?? '';
+$ROSPSYCH      = $rres['ROSPSYCH']      ?? '';
+$ROSMUSCULO    = $rres['ROSMUSCULO']    ?? '';
+$ROSIMMUNO     = $rres['ROSIMMUNO']     ?? '';
+$ROSENDOCRINE  = $rres['ROSENDOCRINE']  ?? '';
+$ROSCOMMENTS   = $rres['ROSCOMMENTS']   ?? '';
 ?>
 <html>
 <head>
@@ -122,106 +136,37 @@ foreach (explode(',', $given) as $item) {
 // If the provider has more 2 items already defined in the last month, they are collated
 // and ranked by frequency, sort alphabetically and <=10 are listed.
 // If not, we use the defaults from list_options/
-        $i = '0';
         $providerID = $session->get('providerID');
+        $quickPickProviderId = is_numeric($providerID) ? (int) $providerID : 0;
         foreach ($PMSFH[0] as $key => $value) {
             echo " aopts['" . attr($key) . "'] = [];\n";
-            $local = '1';
             echo " aitypes['" . attr($key) . "'] = '0';\n";
-            if ($key == "PMH") { // "0" = medical_problem_issue_list leave out Dental "4"
-                $qry = sqlStatement("SELECT title, title as option_id, diagnosis as codes, count(title) AS freq  FROM `lists` WHERE `type` LIKE ? and subtype = '' and pid in (select pid from form_encounter where provider_id =? and date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()) GROUP BY title order by freq desc limit 20", [
-                    "medical_problem",
-                    $providerID
-                ]);
 
-                if (sqlNumRows($qry) < '4') { //if they are just starting out, use the list_options for all
-                    $qry = sqlStatement("SELECT * FROM list_options WHERE list_id = ? and subtype not like 'eye'", [
-                        "medical_problem_issue_list"
-                    ]);
-                }
-            } elseif ($key == "Medication") {
-                $qry = sqlStatement("SELECT title, title as option_id, diagnosis as codes, count(title) AS freq  FROM `lists` WHERE `type` LIKE ? and subtype = '' and pid in (select pid from form_encounter where provider_id =? and date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()) GROUP BY title order by freq desc limit 10", [
-                    "medication",
-                    $providerID
-                ]);
-                if (sqlNumRows($qry) < '4') { //if they are just starting out, use the list_options for all
-                    $qry = sqlStatement("SELECT * FROM list_options WHERE list_id = ? and subtype not like 'eye'", [
-                        "medication_issue_list"
-                    ]);
-                }
-            } elseif ($key == "Surgery") {
-                $qry = sqlStatement("SELECT title, title as option_id, diagnosis as codes, count(title) AS freq  FROM `lists` WHERE `type` LIKE ? and
-    subtype = '' and pid in (select pid from form_encounter where provider_id =?
-    and date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()) GROUP BY title order by freq desc limit 10", [
-                    "surgery",
-                    $providerID
-                ]);
-
-                if (sqlNumRows($qry) < '4') { //if they are just starting out, use the list_options for all
-                    $qry = sqlStatement("SELECT * FROM list_options WHERE list_id = ? and subtype not like 'eye'", [
-                        "surgery_issue_list"
-                    ]);
-                }
-            } elseif ($key == "Allergy") {
-                $qry = sqlStatement("SELECT title, title as option_id, diagnosis as codes, count(title) AS freq  FROM `lists` WHERE `type` LIKE ? and subtype = '' and pid in (select pid from form_encounter where provider_id =? and date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()) GROUP BY title order by freq desc limit 10", [
-                    "allergy",
-                    $providerID
-                ]);
-                if (sqlNumRows($qry) < '4') { //if they are just starting out, use the list_options for all
-                    $qry = sqlStatement("SELECT * FROM list_options WHERE list_id = ? and subtype not like 'eye'", [
-                        "allergy_issue_list"
-                    ]);
-                }
-            } elseif ($key == "POH") { // POH medical group
-                $query = "SELECT title, title as option_id, diagnosis as codes, count(title) AS freq  FROM `lists` WHERE `type` LIKE 'medical_problem' and subtype = 'eye' and pid in (select pid from form_encounter where provider_id =? and date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()) GROUP BY title order by freq desc limit 10";
-                $qry = sqlStatement($query, [
-                    $providerID
-                ]);
-                if (sqlNumRows($qry) < '4') { //if they are just starting out, use the list_options for all
-                    $qry = sqlStatement("SELECT * FROM list_options WHERE list_id = 'medical_problem_issue_list' and subtype = 'eye'");
-                }
-            } elseif ($key == "POS") { // POS surgery group
-                $query = "SELECT title, title as option_id, diagnosis as codes, count(title) AS freq  FROM `lists` WHERE `type` LIKE 'surgery' and subtype = 'eye' and pid in (select pid from form_encounter where provider_id =? and date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()) GROUP BY title order by freq desc limit 10";
-                $qry = sqlStatement($query, [
-                    $providerID
-                ]);
-
-                if (sqlNumRows($qry) < '4') { //if they are just starting out, use the list_options for all
-                    $qry = sqlStatement("SELECT * FROM list_options WHERE list_id = 'surgery_issue_list' and subtype = 'eye'");
-                }
-            } elseif ($key == "Eye Meds") { // POS surgery group
-                $query = "SELECT title, title as option_id, diagnosis as codes, count(title) AS freq FROM `lists` WHERE `type` LIKE 'medication' and subtype = 'eye' and pid in ( select pid from form_encounter where provider_id =? and date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()) GROUP BY title order by freq desc limit 10";
-                $qry = sqlStatement($query, [
-                    $providerID
-                ]);
-                if (sqlNumRows($qry) < '4') { //if they are just starting out, use the list_options for all
-                    $qry = sqlStatement("SELECT * FROM list_options WHERE list_id = 'medication_issue_list' and subtype = 'eye'");
-                }
-            } elseif ($key == "FH") {
-                $local = "";
-                $qry = "";
-            } elseif ($key == "SOCH") {
-                $local = "";
-                $qry = "";
-            } elseif ($key == "ROS") {
-                $local = "";
-                $qry = "";
+            // FH, SocHx and ROS have no quick-pick list of their own; they are built below.
+            $panel = is_string($key) ? IssueQuickPick::tryFrom($key) : null;
+            if ($panel === null) {
+                continue;
             }
 
-            if ($local == "1") { // leave FH/SocHx/ROS for later - done below separately
-                while ($res = sqlFetchArray($qry ?? '')) { //Should we take the top 10 and display alphabetically?
-                    echo " aopts['" . attr($key) . "'][aopts['" . attr($key) . "'].length] = new Option(" . js_escape(xl_list_label(trim((string) $res['title']))) . ", " . js_escape(trim((string) $res['option_id'])) . ", false, false);\n";
-                    if ($res['codes']) {
-                        echo " aopts['" . attr($key) . "'][aopts['" . attr($key) . "'].length-1].setAttribute('data-code','" . attr(trim((string) $res['codes'])) . "');\n";
-                    }
+            $recent = $panel->recentTitlesQuery($quickPickProviderId);
+            $picks = QueryUtils::fetchRecords($recent->sql, $recent->params);
+            if (count($picks) < IssueQuickPick::MIN_RECENT_TITLES) {
+                // The provider is just starting out; offer the stock list instead.
+                $stock = $panel->stockTitlesQuery();
+                $picks = QueryUtils::fetchRecords($stock->sql, $stock->params);
+            }
+
+            foreach ($picks as $res) { //Should we take the top 10 and display alphabetically?
+                echo " aopts['" . attr($key) . "'][aopts['" . attr($key) . "'].length] = new Option(" . js_escape(xl_list_label(trim((string) $res['title']))) . ", " . js_escape(trim((string) $res['option_id'])) . ", false, false);\n";
+                if ($res['codes']) {
+                    echo " aopts['" . attr($key) . "'][aopts['" . attr($key) . "'].length-1].setAttribute('data-code','" . attr(trim((string) $res['codes'])) . "');\n";
                 }
             }
-            ++$i;
         }
 
         ?>
 
-        <?php require(OEGlobalsBag::getInstance()->get('srcdir') . "/restoreSession.php"); ?>
+        <?php require(OEGlobalsBag::getInstance()->getSrcDir() . "/restoreSession.php"); ?>
 
         function newtype(index) {
             var f = document.forms[0];
@@ -502,12 +447,12 @@ foreach (explode(',', $given) as $item) {
         function validate() {
             var f = document.forms[0];
             if (f.form_begin.value > f.form_end.value && (f.form_end.value)) {
-                alert("<?php echo addslashes(xl('Please Enter End Date greater than Begin Date!')); ?>");
+                alert(<?php echo xlj('Please Enter End Date greater than Begin Date!'); ?>);
                 return false;
             }
             if (f.form_type.value != 'ROS' && f.form_type.value != 'FH' && f.form_type.value != 'SOCH') {
                 if (!f.form_title.value) {
-                    alert("<?php echo addslashes(xl('Please enter a title!')); ?>");
+                    alert(<?php echo xlj('Please enter a title!'); ?>);
                     return false;
                 }
             }
@@ -605,8 +550,8 @@ foreach (explode(',', $given) as $item) {
 
     <?php Header::setupHeader(['datetime-picker', 'purecss', 'shortcut', 'opener', 'dialog'  ]); ?>
 
-    <link rel="stylesheet" href="<?php echo OEGlobalsBag::getInstance()->get('rootdir'); ?>/forms/<?php echo $form_folder; ?>/css/style.css">
-    <script src="<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/forms/<?php echo $form_folder; ?>/js/eye_base.php?enc=<?php echo attr($encounter); ?>&providerID=<?php echo attr($providerID); ?>"></script>
+    <link rel="stylesheet" href="<?php echo OEGlobalsBag::getInstance()->getKernel()->getRootDir(); ?>/forms/<?php echo $form_folder; ?>/css/style.css">
+    <script src="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/forms/<?php echo $form_folder; ?>/js/eye_base.php?enc=<?php echo attr($encounter); ?>&providerID=<?php echo attr($providerID); ?>"></script>
 </head>
 
 <body>
@@ -621,6 +566,7 @@ foreach (explode(',', $given) as $item) {
                 global $counter_header;
                 $count_header = '0';
                 $output = [];
+                $HELLO = [];
                 foreach ($PMSFH[0] as $key => $value) {
                     $checked = '';
                     if ($key == "POH") {
@@ -727,7 +673,7 @@ foreach (explode(',', $given) as $item) {
                             ?>
                         </td>
                         <td class="indent20">
-                            <a class="text-body" href="<?php echo OEGlobalsBag::getInstance()->get('webroot'); ?>/interface/super/edit_list.php?list_id=occurrence" target="RTop" title="<?php echo xla('Click here to Edit the Course/Occurrence List'); ?>"><i class="fa fa-pencil-alt fa-fw"></i></a>
+                            <a class="text-body" href="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/interface/super/edit_list.php?list_id=occurrence" target="RTop" title="<?php echo xla('Click here to Edit the Course/Occurrence List'); ?>"><i class="fa fa-pencil-alt fa-fw"></i></a>
                         </td>
                     </tr>
 
@@ -830,6 +776,7 @@ foreach (explode(',', $given) as $item) {
                     }
 
                     $group_fields_query = sqlStatement("SELECT * FROM layout_options " . "WHERE form_id = 'HIS' AND group_id = '4' AND uor > 0 " . "ORDER BY seq");
+                    $result2 = [];
                     while ($group_fields = sqlFetchArray($group_fields_query)) {
                         $titlecols = $group_fields['titlecols'];
                         $datacols = $group_fields['datacols'];
@@ -871,8 +818,8 @@ foreach (explode(',', $given) as $item) {
 
                             $fldlength = empty($frow['fld_length']) ? 20 : $frow['fld_length'];
                             $fldlength = htmlspecialchars((string) $fldlength, ENT_QUOTES);
-                            $result2[$field_id]['resnote'] = htmlspecialchars((string) $result2[$field_id]['resnote'], ENT_QUOTES);
-                            $result2[$field_id]['resdate'] = htmlspecialchars((string) $result2[$field_id]['resdate'], ENT_QUOTES);
+                            $result2[$field_id]['resnote'] = htmlspecialchars($result2[$field_id]['resnote'], ENT_QUOTES);
+                            $result2[$field_id]['resdate'] = htmlspecialchars($result2[$field_id]['resdate'], ENT_QUOTES);
                         } elseif ($data_type == 2) {
                             $result2[$field_id]['resnote'] = nl2br(htmlspecialchars($currvalue, ENT_NOQUOTES));
                         }
@@ -1370,7 +1317,7 @@ foreach (explode(',', $given) as $item) {
             <?php $datetimepicker_formatInput = true; ?>
             <?php $datetimepicker_minDate = false; ?>
             <?php $datetimepicker_maxDate = false; ?>
-            <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+            <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
             <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
         });
         $('.datepicker-past').datetimepicker({
@@ -1379,7 +1326,7 @@ foreach (explode(',', $given) as $item) {
             <?php $datetimepicker_formatInput = true; ?>
             <?php $datetimepicker_minDate = false; ?>
             <?php $datetimepicker_maxDate = '+1970/01/01'; ?>
-            <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+            <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
             <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
         });
         $('.datepicker-future').datetimepicker({
@@ -1388,7 +1335,7 @@ foreach (explode(',', $given) as $item) {
             <?php $datetimepicker_formatInput = true; ?>
             <?php $datetimepicker_minDate = '-1970/01/01'; ?>
             <?php $datetimepicker_maxDate = false; ?>
-            <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+            <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
             <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
         });
     });

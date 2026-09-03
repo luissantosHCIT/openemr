@@ -14,8 +14,8 @@
  */
 
 require_once("../globals.php");
-require_once("$srcdir/patient.inc.php");
-require_once("$srcdir/options.inc.php");
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . "/patient.inc.php");
+require_once(\OpenEMR\Core\OEGlobalsBag::getInstance()->getSrcDir() . "/options.inc.php");
 
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
@@ -59,7 +59,7 @@ $(function () {
         <?php $datetimepicker_timepicker = false; ?>
         <?php $datetimepicker_showseconds = false; ?>
         <?php $datetimepicker_formatInput = true; ?>
-        <?php require(OEGlobalsBag::getInstance()->get('srcdir') . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+        <?php require(OEGlobalsBag::getInstance()->getSrcDir() . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
         <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
     });
 });
@@ -186,17 +186,17 @@ $(function () {
 if (!empty($_POST['form_refresh']) || !empty($_POST['form_csvexport'])) {
     if ($_POST['form_csvexport']) {
         // CSV headers:
-        echo csvEscape(xl('Last Visit')) . ',';
-        echo csvEscape(xl('First{{Name}}')) . ',';
-        echo csvEscape(xl('Last{{Name}}')) . ',';
-        echo csvEscape(xl('Middle{{Name}}')) . ',';
-        echo csvEscape(xl('ID')) . ',';
-        echo csvEscape(xl('Street')) . ',';
-        echo csvEscape(xl('City')) . ',';
-        echo csvEscape(xl('State')) . ',';
-        echo csvEscape(xl('Zip')) . ',';
-        echo csvEscape(xl('Home Phone')) . ',';
-        echo csvEscape(xl('Work Phone')) . "\n";
+        echo xlc('Last Visit') . ',';
+        echo xlc('First{{Name}}') . ',';
+        echo xlc('Last{{Name}}') . ',';
+        echo xlc('Middle{{Name}}') . ',';
+        echo xlc('ID') . ',';
+        echo xlc('Street') . ',';
+        echo xlc('City') . ',';
+        echo xlc('State') . ',';
+        echo xlc('Zip') . ',';
+        echo xlc('Home Phone') . ',';
+        echo xlc('Work Phone') . "\n";
     } else {
         ?>
 

@@ -570,15 +570,13 @@ class FHIROrganizationAffiliation extends FHIRDomainResource implements \JsonSer
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<OrganizationAffiliation xmlns="http://hl7.org/fhir"></OrganizationAffiliation>');
-        }
+        $sxe ??= new \SimpleXMLElement('<OrganizationAffiliation xmlns="http://hl7.org/fhir"></OrganizationAffiliation>');
         parent::xmlSerialize(true, $sxe);
         if (0 < count($this->identifier)) {
             foreach ($this->identifier as $identifier) {

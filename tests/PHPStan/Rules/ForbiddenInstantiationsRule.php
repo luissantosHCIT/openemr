@@ -5,7 +5,7 @@
  *
  * @package   OpenEMR
  * @author    Eric Stern <erics@opencoreemr.com>
- * @copyright Copyright (c) 2026 OpenCoreEMR Inc
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -33,6 +33,7 @@ class ForbiddenInstantiationsRule implements Rule
         Common\Logging\SystemLogger::class => ServiceContainer::class . '::getLogger()',
         Common\Crypto\CryptoGen::class => ServiceContainer::class . '::getCrypto()',
         Common\Http\Psr17Factory::class => ServiceContainer::class . '::get{PsrType}Factory()',
+        Common\Twig\TwigContainer::class => ServiceContainer::class . '::getTwig()',
     ];
 
     /**

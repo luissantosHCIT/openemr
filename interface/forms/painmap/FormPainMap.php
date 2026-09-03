@@ -13,7 +13,7 @@
 
 use OpenEMR\Core\OEGlobalsBag;
 
-require_once(OEGlobalsBag::getInstance()->get('fileroot') . "/interface/clickmap/AbstractClickmapModel.php");
+require_once(OEGlobalsBag::getInstance()->getProjectDir() . "/interface/clickmap/AbstractClickmapModel.php");
 
 /**
  * @class FormPainMap
@@ -30,7 +30,7 @@ class FormPainMap extends AbstractClickmapModel
     static $TABLE_NAME = "form_painmap";
 
     /* Initializer. just calls parent's initializer. */
-    function __construct($id = "")
+    public function __construct($id = "")
     {
         parent::__construct(FormPainMap::$TABLE_NAME, $id);
     }

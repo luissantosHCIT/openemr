@@ -139,16 +139,6 @@ class AclMain
     }
 
     /**
-     * Clear the GACL Cache.  We use this in Unit Tests, but this function should be avoided to prevent smashing
-     * the database.
-     */
-    public static function clearGaclCache()
-    {
-        $object = self::collectGaclObject();
-        $object->clear_cache();
-    }
-
-    /**
      * Check if a user has a given type or types of access to an access control object.
      *
      * This function will check for access to the given ACO.
@@ -247,7 +237,7 @@ class AclMain
      *
      * @param String $user_id Auth user Id
      * $param String $section_identifier ACL Section id
-     * @return boolean
+     * @return bool
      */
     public static function zhAclCheck($user_id, $section_identifier)
     {
@@ -332,7 +322,7 @@ class AclMain
     // Permissions check for an ACO in "section|aco" format.
     // Note $return_value may be an array of return values.
     //
-    public static function aclCheckAcoSpec($aco_spec, $user = '', $return_value = '')
+    public static function aclCheckAcoSpec($aco_spec, $user = '', $return_value = ''): bool
     {
         if (empty($aco_spec)) {
             return true;
@@ -354,7 +344,6 @@ class AclMain
     //
     public static function aclCheckForm($formdir, $user = '', $return_value = '')
     {
-        require_once(__DIR__ . '/../../../library/registry.inc.php');
         $tmp = getRegistryEntryByDirectory($formdir, 'aco_spec');
         return self::aclCheckAcoSpec($tmp['aco_spec'], $user, $return_value);
     }

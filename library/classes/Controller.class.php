@@ -1,12 +1,30 @@
 <?php
 
+/**
+ * Controller Class.
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    OpenEMR contributors
+ * @author    Michael A. Smith <michael@opencoreemr.com>
+ * @author    Stephen Waite <stephen.waite@open-emr.org>
+ * @copyright Copyright (c) OpenEMR contributors
+ * @copyright Copyright (c) 2026 OpenCoreEMR Inc <https://opencoreemr.com/>
+ * @copyright Copyright (c) 2026 Stephen Waite <stephen.waite@open-emr.org>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
+
+use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Http\RequestTerminator;
 use OpenEMR\Core\ControllerInterface;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Services\Storage\CacheDirectory;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Twig\Environment as TwigEnvironment;
 
 // TODO: @adunsulag move these into src/
 class Controller extends Smarty implements ControllerInterface
@@ -35,25 +53,46 @@ class Controller extends Smarty implements ControllerInterface
      * Maps controller name to [section, value, display_name].
      */
     private const CONTROLLER_ACL_MAP = [
+        'document' => ['patients', 'docs', 'Documents'],
+        'document_category' => ['admin', 'practice', 'Practice Settings'],
+        'hl7' => ['admin', 'practice', 'Practice Settings'],
+        'insurance_company' => ['admin', 'practice', 'Practice Settings'],
+        'insurance_numbers' => ['admin', 'practice', 'Practice Settings'],
+        // patient_finder's only caller is the document-move destination picker
+        // (templates/documents/general_view.html), so it requires the same
+        // write-level documents ACL as the reassignment it feeds.
+        'patient_finder' => ['patients', 'docs', 'Documents', ['write', 'addonly']],
+        'pharmacy' => ['admin', 'practice', 'Practice Settings'],
         'practice_settings' => ['admin', 'practice', 'Practice Settings'],
         'prescription' => ['patients', 'rx', 'Prescriptions'],
+        'x12_partner' => ['admin', 'practice', 'Practice Settings'],
     ];
 
-    public $template_mod;
-    public $_current_action;
-    public $_state;
+    public string $template_mod;
+    /**
+     * Redeclared from parent to fix incorrect type info
+     * @var string|string[]
+     */
+    protected $template_dir;
+    public string $_current_action; // seems to be unneeded in practice
+    public bool $_state;
     public $_args = [];
     protected $form = null;
+    protected TwigEnvironment $twig;
 
-    public function __construct()
+    public function __construct(?TwigEnvironment $twig = null)
     {
          parent::__construct();
+         $this->twig = $twig ?? ServiceContainer::getTwig();
          $this->template_mod = "general";
          $this->_current_action = "";
          $this->_state = true;
-         $this->setCompileDir(OEGlobalsBag::getInstance()->get('OE_SITE_DIR') . '/documents/smarty/main');
+         $this->setCompileDir((new CacheDirectory())->for('openemr-smarty'));
          $this->setCompileCheck(true);
-         $this->setPluginsDir([__DIR__ . "/../smarty/plugins", OEGlobalsBag::getInstance()->get('vendor_dir') . "/smarty/smarty/libs/plugins"]);
+         $this->setPluginsDir([__DIR__ . "/../smarty/plugins", OEGlobalsBag::getInstance()->getKernel()->getVendorDir() . "/smarty/smarty/libs/plugins"]);
+         // Register {$x|text} explicitly so Smarty does not fall back to the
+         // deprecated unregistered-function path when escaping for text nodes.
+         $this->registerPlugin('modifier', 'text', self::escapeForTextNode(...));
          $this->assign("PROCESS", "true");
          $this->assign("HEADER", "<html><head></head><body>");
          $this->assign("FOOTER", "</body></html>");
@@ -62,22 +101,22 @@ class Controller extends Smarty implements ControllerInterface
          $this->assign('GLOBALS', $GLOBALS);
     }
 
-    public function set_current_action($action)
+    public function set_current_action(string $action)
     {
          $this->_current_action = $action;
     }
 
-    public function default_action()
+    public function default_action(): string
     {
-         echo "<html><body></body></html>";
+         return "<html><body></body></html>";
     }
 
     public function process_action()
     {
-         $this->default_action();
+         echo $this->default_action();
     }
 
-    public function populate_object(&$obj)
+    public function populate_object(&$obj): bool
     {
         if (!is_object($obj)) {
             $this->function_argument_error();
@@ -98,8 +137,8 @@ class Controller extends Smarty implements ControllerInterface
 
     public function function_argument_error(): never
     {
-         $this->display(OEGlobalsBag::getInstance()->get('template_dir') . "error/" . $this->template_mod . "_function_argument.html");
-         exit;
+         $body = $this->twig->render("error/" . $this->template_mod . "_function_argument.html.twig");
+         (new RequestTerminator())->error(400, $body);
     }
 
     public function i_once($file)
@@ -110,14 +149,22 @@ class Controller extends Smarty implements ControllerInterface
     /**
      * Check ACL for a controller and deny access if not authorized.
      */
-    private function checkControllerAcl(string $controllerName): void
+    protected function checkControllerAcl(string $controllerName): void
     {
         if (!isset(self::CONTROLLER_ACL_MAP[$controllerName])) {
-            return;
+            // Fail closed. Every controller reachable through dispatch() must
+            // declare an explicit ACL requirement; adding an entry to
+            // VALID_CONTROLLERS without a corresponding CONTROLLER_ACL_MAP entry
+            // must not silently skip authorization.
+            $this->throwAccessDenied(
+                "No ACL mapping defined for controller: $controllerName",
+                xl('Access Denied')
+            );
         }
 
         [$section, $value, $displayName] = self::CONTROLLER_ACL_MAP[$controllerName];
-        if (!AclMain::aclCheckCore($section, $value)) {
+        $returnValue = self::CONTROLLER_ACL_MAP[$controllerName][3] ?? '';
+        if (!AclMain::aclCheckCore($section, $value, '', $returnValue)) {
             $this->throwAccessDenied(
                 "ACL check failed for $section/$value: $displayName",
                 xl($displayName)
@@ -196,7 +243,7 @@ class Controller extends Smarty implements ControllerInterface
         }
 
         // Load controller file
-        $controllerFile = OEGlobalsBag::getInstance()->getString('fileroot') . "/controllers/$className.class.php";
+        $controllerFile = OEGlobalsBag::getInstance()->getProjectDir() . "/controllers/$className.class.php";
         if (!$this->i_once($controllerFile)) {
             throw new NotFoundHttpException("Unable to load controller: $className");
         }
@@ -232,20 +279,40 @@ class Controller extends Smarty implements ControllerInterface
 
         $isProcessing = ($_POST['process'] ?? '') === 'true';
 
-        if ($isProcessing && is_callable([$controllerObj, $processMethod])) {
+        if ($isProcessing && $this->methodExists($controllerObj, $processMethod)) {
             $output .= $callMethod($processMethod);
             if ($controllerObj->_state === false) {
                 return $output;
             }
         }
 
-        if ($isProcessing || is_callable([$controllerObj, $actionMethod])) {
+        if ($this->methodExists($controllerObj, $actionMethod)) {
             $output .= $callMethod($actionMethod);
         } else {
             throw new NotFoundHttpException("Action '$action' does not exist on controller: $className");
         }
 
         return $output;
+    }
+
+    /**
+     * Check whether a method genuinely exists on a controller object.
+     *
+     * Smarty 4's __call makes is_callable() always return true on
+     * Smarty-derived objects, so we must also check method_exists().
+     */
+    private function methodExists(object $controllerObj, string $method): bool
+    {
+        return method_exists($controllerObj, $method)
+            && is_callable([$controllerObj, $method]);
+    }
+
+    private static function escapeForTextNode(mixed $value): string
+    {
+        if (is_string($value) || is_int($value) || is_float($value) || is_bool($value) || $value instanceof \Stringable) {
+            return \text((string) $value);
+        }
+        return '';
     }
 
     public function _link($action = "default", $inlining = false)

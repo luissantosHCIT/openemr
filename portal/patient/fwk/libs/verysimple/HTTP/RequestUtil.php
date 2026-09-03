@@ -47,7 +47,7 @@ class RequestUtil
      * @see http://en.wikipedia.org/wiki/X-Forwarded-For
      * @return string
      */
-    static function GetRemoteHost()
+    public static function GetRemoteHost()
     {
         if (array_key_exists('HTTP_X_CLUSTER_CLIENT_IP', $_SERVER)) {
             return $_SERVER ['HTTP_X_CLUSTER_CLIENT_IP'];
@@ -71,7 +71,7 @@ class RequestUtil
     /**
      * Returns true if the current session is running in SSL
      */
-    static function IsSSL()
+    public static function IsSSL()
     {
         return isset($_SERVER ['HTTPS']) && $_SERVER ['HTTPS'] != "" && $_SERVER ['HTTPS'] != "off";
     }
@@ -134,8 +134,7 @@ class RequestUtil
      * Returns the parts of the url as deliminated by forward slashes for example /this/that/other
      * will be returned as an array [this,that,other]
      *
-     * @param
-     *          string root folder for the app (ex. 'myapp' or 'myapp/subdir1')
+     * @param string $appRoot root folder for the app (ex. 'myapp' or 'myapp/subdir1')
      * @return array
      */
     public static function GetUrlParts($appRoot = '')
@@ -172,8 +171,7 @@ class RequestUtil
      * For clients or servers that don't support PUT/DELETE requests, the emulated
      * param can be used or the override header
      *
-     * @param
-     *          string name of the querystring parameter that has the overridden request method
+     * @param string $emulateHttpParamName name of the querystring parameter that has the overridden request method
      */
     public static function GetMethod($emulateHttpParamName = '_method')
     {
@@ -446,7 +444,7 @@ class RequestUtil
      * Sets a value as if it was sent from the browser - primarily used for unit testing
      *
      * @param string $key
-     * @param variant $val
+     * @param mixed $val
      */
     public static function Set($key, $val)
     {

@@ -3,6 +3,11 @@
 $ignoreErrors = [];
 $ignoreErrors[] = [
     'message' => '#^Parameter \\#2 \\$children of method eRxXMLBuilder\\:\\:appendChildren\\(\\) is passed by reference, so it expects variables only\\.$#',
+    'count' => 2,
+    'path' => __DIR__ . '/../../interface/eRxPage.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Parameter \\#2 \\$children of method eRxXMLBuilder\\:\\:appendChildren\\(\\) is passed by reference, so it expects variables only\\.$#',
     'count' => 3,
     'path' => __DIR__ . '/../../interface/eRxXMLBuilder.php',
 ];
@@ -15,11 +20,6 @@ $ignoreErrors[] = [
     'message' => '#^Parameter \\#1 \\$array of function reset is passed by reference, so it expects variables only\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../library/options.inc.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Parameter \\#1 \\$array of function end is passed by reference, so it expects variables only\\.$#',
-    'count' => 2,
-    'path' => __DIR__ . '/../../src/ClinicalDecisionRules/Interface/RuleLibrary/RuleManager.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Parameter \\#1 \\$array of function array_pop is passed by reference, so it expects variables only\\.$#',

@@ -138,15 +138,13 @@ class FHIRStructureMapModelMode extends FHIRElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<StructureMapModelMode xmlns="http://hl7.org/fhir"></StructureMapModelMode>');
-        }
+        $sxe ??= new \SimpleXMLElement('<StructureMapModelMode xmlns="http://hl7.org/fhir"></StructureMapModelMode>');
         $sxe->addAttribute('value', $this->value);
         if ($returnSXE) {
             return $sxe;

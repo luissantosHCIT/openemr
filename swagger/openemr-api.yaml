@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: 'OpenEMR API'
-  version: 8.0.1
+  version: 8.4.0
 servers:
   -
     url: /apis/default/
@@ -122,6 +122,257 @@ paths:
           $ref: '#/components/responses/badrequest'
         401:
           $ref: '#/components/responses/unauthorized'
+      security:
+        -
+          openemr_auth: {  }
+  /api/background_service:
+    get:
+      tags:
+        - standard
+      description: 'Retrieves all registered background services'
+      responses:
+        200:
+          description: 'List of registered background services'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  properties:
+                    name:
+                      type: string
+                    title:
+                      type: string
+                    active:
+                      type: boolean
+                    running:
+                      type: boolean
+                    execute_interval:
+                      type: integer
+                    next_run:
+                      type: string
+                      format: date-time
+                  type: object
+        401:
+          $ref: '#/components/responses/unauthorized'
+      security:
+        -
+          openemr_auth: {  }
+  /api/background_service/$run:
+    post:
+      tags:
+        - standard
+      description: 'Advances any background services that are due to run. Cannot force-run a specific service and cannot bypass intervals. Returns HTTP 200 with a per-service results array regardless of individual outcomes — the runner is always correct to invoke, and `not_due` / `already_running` / `skipped` are expected states, not errors.'
+      responses:
+        200:
+          description: 'Per-service results (may be empty if no services were due)'
+          content:
+            application/json:
+              schema:
+                required:
+                  - results
+                properties:
+                  results:
+                    type: array
+                    items:
+                      required:
+                        - name
+                        - status
+                      properties:
+                        name:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - executed
+                            - skipped
+                            - already_running
+                            - not_due
+                            - error
+                      type: object
+                type: object
+              example:
+                results:
+                  -
+                    name: phimail
+                    status: executed
+                  -
+                    name: Email_Service
+                    status: not_due
+        401:
+          $ref: '#/components/responses/unauthorized'
+      security:
+        -
+          openemr_auth: {  }
+  '/api/background_service/{name}':
+    get:
+      tags:
+        - standard
+      description: 'Retrieves a single background service by name'
+      parameters:
+        -
+          name: name
+          in: path
+          description: 'The registered name of the background service.'
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Background service details'
+          content:
+            application/json:
+              schema:
+                required:
+                  - name
+                  - title
+                  - active
+                  - running
+                  - execute_interval
+                  - next_run
+                properties:
+                  name:
+                    type: string
+                  title:
+                    type: string
+                  active:
+                    type: boolean
+                  running:
+                    type: boolean
+                  execute_interval:
+                    type: integer
+                  next_run:
+                    type: string
+                    format: date-time
+                type: object
+        401:
+          $ref: '#/components/responses/unauthorized'
+        404:
+          description: 'Background service not found'
+          content:
+            application/json:
+              schema:
+                required:
+                  - error
+                properties:
+                  error:
+                    type: string
+                    example: 'Service not found'
+                type: object
+      security:
+        -
+          openemr_auth: {  }
+  '/api/background_service/{name}/run':
+    post:
+      tags:
+        - standard
+      description: 'Triggers execution of a background service'
+      parameters:
+        -
+          name: name
+          in: path
+          description: 'The registered name of the background service.'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              properties:
+                force:
+                  description: 'Force execution even if the service is not due to run.'
+                  type: boolean
+              type: object
+              example:
+                force: true
+      responses:
+        200:
+          description: 'Service executed successfully'
+          content:
+            application/json:
+              schema:
+                required:
+                  - service
+                  - status
+                properties:
+                  service:
+                    type: string
+                  status:
+                    type: string
+                type: object
+              example:
+                service: patient-reminder
+                status: executed
+        400:
+          description: 'Invalid JSON payload'
+          content:
+            application/json:
+              schema:
+                required:
+                  - error
+                properties:
+                  error:
+                    type: string
+                type: object
+              example:
+                error: 'Invalid JSON payload'
+        401:
+          $ref: '#/components/responses/unauthorized'
+        404:
+          description: 'Background service not found'
+          content:
+            application/json:
+              schema:
+                required:
+                  - error
+                properties:
+                  error:
+                    type: string
+                type: object
+              example:
+                error: 'Service not found'
+        409:
+          description: 'Service is already running, not due, or skipped'
+          content:
+            application/json:
+              schema:
+                required:
+                  - service
+                  - status
+                properties:
+                  service:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - already_running
+                      - not_due
+                      - skipped
+                type: object
+              example:
+                service: patient-reminder
+                status: already_running
+        500:
+          description: 'Service execution failed'
+          content:
+            application/json:
+              schema:
+                required:
+                  - service
+                  - status
+                properties:
+                  service:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - error
+                type: object
+              example:
+                service: patient-reminder
+                status: error
       security:
         -
           openemr_auth: {  }
@@ -781,7 +1032,53 @@ paths:
     get:
       tags:
         - standard
-      description: 'Retrieves all insurance companies'
+      description: 'Retrieves all insurance companies, optionally filtered by search parameters'
+      parameters:
+        -
+          name: uuid
+          in: query
+          description: 'The uuid of the insurance company.'
+          required: false
+          schema:
+            type: string
+        -
+          name: name
+          in: query
+          description: 'Partial match on the insurance company name.'
+          required: false
+          schema:
+            type: string
+        -
+          name: cms_id
+          in: query
+          description: 'Exact match on the cms id.'
+          required: false
+          schema:
+            type: string
+        -
+          name: alt_cms_id
+          in: query
+          description: 'Exact match on the alternate cms id.'
+          required: false
+          schema:
+            type: string
+        -
+          name: ins_type_code
+          in: query
+          description: 'The insurance type code.'
+          required: false
+          schema:
+            type: string
+        -
+          name: inactive
+          in: query
+          description: 'Whether the insurance company is inactive (0 or 1).'
+          required: false
+          schema:
+            type: string
+            enum:
+              - '0'
+              - '1'
       responses:
         200:
           $ref: '#/components/responses/standard'
@@ -1305,6 +1602,8 @@ paths:
           $ref: '#/components/responses/badrequest'
         401:
           $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/uuidnotfound'
       security:
         -
           openemr_auth: {  }
@@ -1479,6 +1778,8 @@ paths:
           $ref: '#/components/responses/badrequest'
         401:
           $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/uuidnotfound'
       security:
         -
           openemr_auth: {  }
@@ -1730,6 +2031,8 @@ paths:
           $ref: '#/components/responses/badrequest'
         401:
           $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/uuidnotfound'
       security:
         -
           openemr_auth: {  }
@@ -2019,6 +2322,8 @@ paths:
           $ref: '#/components/responses/badrequest'
         401:
           $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/uuidnotfound'
       security:
         -
           openemr_auth: {  }
@@ -2258,6 +2563,8 @@ paths:
           $ref: '#/components/responses/badrequest'
         401:
           $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/uuidnotfound'
       security:
         -
           openemr_auth: {  }
@@ -2525,6 +2832,41 @@ paths:
           required: true
           schema:
             type: string
+        -
+          name: name
+          in: query
+          description: 'Partial match on the employer name.'
+          required: false
+          schema:
+            type: string
+        -
+          name: occupation
+          in: query
+          description: 'The ODH occupation code.'
+          required: false
+          schema:
+            type: string
+        -
+          name: industry
+          in: query
+          description: 'The ODH industry code.'
+          required: false
+          schema:
+            type: string
+        -
+          name: start_date
+          in: query
+          description: 'The employment start date, supports FHIR prefixes e.g. ge2024-01-01.'
+          required: false
+          schema:
+            type: string
+        -
+          name: end_date
+          in: query
+          description: 'The employment end date, supports FHIR prefixes e.g. lt2025-01-01.'
+          required: false
+          schema:
+            type: string
       responses:
         200:
           $ref: '#/components/responses/standard'
@@ -2699,6 +3041,59 @@ paths:
           in: path
           description: 'The uuid for the patient.'
           required: true
+          schema:
+            type: string
+        -
+          name: type
+          in: query
+          description: 'The insurance type (primary, secondary, or tertiary).'
+          required: false
+          schema:
+            type: string
+            enum:
+              - primary
+              - secondary
+              - tertiary
+        -
+          name: plan_name
+          in: query
+          description: 'Partial match on the plan name.'
+          required: false
+          schema:
+            type: string
+        -
+          name: policy_number
+          in: query
+          description: 'Exact match on the policy number.'
+          required: false
+          schema:
+            type: string
+        -
+          name: group_number
+          in: query
+          description: 'Exact match on the group number.'
+          required: false
+          schema:
+            type: string
+        -
+          name: policy_type
+          in: query
+          description: 'The policy type.'
+          required: false
+          schema:
+            type: string
+        -
+          name: date
+          in: query
+          description: 'The coverage effective date, supports FHIR prefixes e.g. ge2024-01-01.'
+          required: false
+          schema:
+            type: string
+        -
+          name: date_end
+          in: query
+          description: 'The coverage end date, supports FHIR prefixes e.g. lt2025-01-01.'
+          required: false
           schema:
             type: string
       responses:

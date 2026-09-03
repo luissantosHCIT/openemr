@@ -38,9 +38,7 @@ class OEHttpKernel extends HttpKernel
     }
     public function getSystemLogger(): LoggerInterface
     {
-        if (empty($this->logger)) {
-            $this->logger = ServiceContainer::getLogger();
-        }
+        $this->logger ??= ServiceContainer::getLogger();
         return $this->logger;
     }
     public function setSystemLogger(LoggerInterface $logger): void

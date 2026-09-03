@@ -84,9 +84,7 @@ class FhirLocationService extends FhirServiceBase implements IFhirExportableReso
     }
 
     public function getOrganizationService(): FhirOrganizationService {
-        if (!isset($this->fhirOrganizationService)) {
-            $this->fhirOrganizationService = new FhirOrganizationService();
-        }
+        $this->fhirOrganizationService ??= new FhirOrganizationService();
         return $this->fhirOrganizationService;
     }
 
@@ -144,7 +142,7 @@ class FhirLocationService extends FhirServiceBase implements IFhirExportableReso
      * Parses an OpenEMR location record, returning the equivalent FHIR Location Resource
      *
      * @param array $dataRecord The source OpenEMR data record
-     * @param boolean $encode Indicates if the returned resource is encoded into a string. Defaults to false.
+     * @param bool $encode Indicates if the returned resource is encoded into a string. Defaults to false.
      * @return FHIRLocation
      */
     public function parseOpenEMRRecord($dataRecord = [], $encode = false)

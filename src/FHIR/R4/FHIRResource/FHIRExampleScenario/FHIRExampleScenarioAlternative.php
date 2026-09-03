@@ -217,15 +217,13 @@ class FHIRExampleScenarioAlternative extends FHIRBackboneElement implements \Jso
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ExampleScenarioAlternative xmlns="http://hl7.org/fhir"></ExampleScenarioAlternative>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ExampleScenarioAlternative xmlns="http://hl7.org/fhir"></ExampleScenarioAlternative>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->title)) {
             $this->title->xmlSerialize(true, $sxe->addChild('title'));

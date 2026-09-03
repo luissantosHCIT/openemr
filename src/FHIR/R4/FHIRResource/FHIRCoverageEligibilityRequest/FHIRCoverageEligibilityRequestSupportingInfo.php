@@ -208,15 +208,13 @@ class FHIRCoverageEligibilityRequestSupportingInfo extends FHIRBackboneElement i
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<CoverageEligibilityRequestSupportingInfo xmlns="http://hl7.org/fhir"></CoverageEligibilityRequestSupportingInfo>');
-        }
+        $sxe ??= new \SimpleXMLElement('<CoverageEligibilityRequestSupportingInfo xmlns="http://hl7.org/fhir"></CoverageEligibilityRequestSupportingInfo>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->sequence)) {
             $this->sequence->xmlSerialize(true, $sxe->addChild('sequence'));

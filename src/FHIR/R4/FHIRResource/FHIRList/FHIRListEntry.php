@@ -240,15 +240,13 @@ class FHIRListEntry extends FHIRBackboneElement implements \JsonSerializable
     }
 
     /**
-     * @param boolean $returnSXE
+     * @param bool $returnSXE
      * @param \SimpleXMLElement $sxe
      * @return string|\SimpleXMLElement
      */
     public function xmlSerialize($returnSXE = false, $sxe = null)
     {
-        if (null === $sxe) {
-            $sxe = new \SimpleXMLElement('<ListEntry xmlns="http://hl7.org/fhir"></ListEntry>');
-        }
+        $sxe ??= new \SimpleXMLElement('<ListEntry xmlns="http://hl7.org/fhir"></ListEntry>');
         parent::xmlSerialize(true, $sxe);
         if (isset($this->flag)) {
             $this->flag->xmlSerialize(true, $sxe->addChild('flag'));

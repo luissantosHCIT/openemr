@@ -47,6 +47,9 @@ switch ($search_any_type) {
 }
 
 ?>
+<script>
+    var patient_picture_default_url = <?php echo json_encode(OEGlobalsBag::getInstance()->getKernel()->getImagesRelative() . '/patient-picture-default.png'); ?>;
+</script>
 <script type="text/html" id="patient-data-template">
     <div class="d-lg-inline-flex w-100">
         <div class="flex-fill">
@@ -57,7 +60,7 @@ switch ($search_any_type) {
                         class="img-thumbnail"
                         width="75"
                         height="75"
-                        onError="this.src = '<?php echo OEGlobalsBag::getInstance()->get('images_static_relative'); ?>/patient-picture-default.png'" />
+                        onError="this.src = '<?php echo OEGlobalsBag::getInstance()->getKernel()->getImagesRelative(); ?>/patient-picture-default.png'" />
                 </div>
                 <!-- /ko -->
             </div>

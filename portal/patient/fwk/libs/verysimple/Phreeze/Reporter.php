@@ -39,8 +39,7 @@ abstract class Reporter
      * Returns true if the current object has been loaded
      *
      * @access public
-     * @param
-     *          bool (optional) if provided will change the value
+     * @param bool $value (optional) if provided will change the value
      * @return bool
      */
     public function IsLoaded($value = null)
@@ -56,8 +55,7 @@ abstract class Reporter
      * Returns true if the current object has been partially loaded
      *
      * @access public
-     * @param
-     *          bool (optional) if provided will change the value
+     * @param bool $value (optional) if provided will change the value
      * @return bool
      */
     public function IsPartiallyLoaded($value = null)
@@ -73,8 +71,7 @@ abstract class Reporter
      * Returns 0 if this was loaded from the DB, 1 if from 1st level cache and 2 if 2nd level cache
      *
      * @access public
-     * @param
-     *          bool (optional) if provided will change the value
+     * @param bool $value (optional) if provided will change the value
      * @return bool
      */
     public function CacheLevel($value = null)
@@ -90,8 +87,7 @@ abstract class Reporter
      * Returns true if the current object should never be cached
      *
      * @access public
-     * @param
-     *          bool (optional) if provided will change the value
+     * @param bool $value (optional) if provided will change the value
      * @return bool
      */
     public function NoCache($value = null)
@@ -110,7 +106,7 @@ abstract class Reporter
      * @param Phreezer $_phreezer
      * @param Array $row
      */
-    final function __construct(protected $_phreezer, $row = null)
+    final public function __construct(protected $_phreezer, $row = null)
     {
         if ($row) {
             $this->Load($row);
@@ -156,18 +152,15 @@ abstract class Reporter
      * This can be overridden per class for custom JSON output. the overridden method may accept
      * additional option parameters that are not supported by the base Phreezable class
      *
-     * @param
-     *          array assoc array of options. This is passed through from Controller->RenderJSON
+     * @param array $options assoc array of options. This is passed through from Controller->RenderJSON
      *          props (array) array of props to return (if null then use all public props)
      *          omit (array) array of props to omit
      *          camelCase (bool) if true then first letter of each property is made lowercase
      * @return stdClass
      */
-    function ToObject($options = null)
+    public function ToObject($options = null)
     {
-        if ($options === null) {
-            $options =  [];
-        }
+        $options ??= [];
 
         $props = array_key_exists('props', $options) ? $options ['props'] : $this->GetPublicProperties();
         $omit = array_key_exists('omit', $options) ? $options ['omit'] :  [];
@@ -188,12 +181,10 @@ abstract class Reporter
     /**
      * Restores the object's connection to the datastore, for example after serialization
      *
-     * @param
-     *          $phreezer
-     * @param
-     *          $row
+     * @param $phreezer
+     * @param $row
      */
-    function Refresh(Phreezer $phreezer, $row = null)
+    public function Refresh(Phreezer $phreezer, $row = null)
     {
         $this->_phreezer = $phreezer;
 
@@ -221,7 +212,7 @@ abstract class Reporter
      * @param Criteria $criteria
      * @return string
      */
-    static function GetCustomQuery($criteria)
+    public static function GetCustomQuery($criteria)
     {
         return "";
     }
@@ -240,7 +231,7 @@ abstract class Reporter
      * @param Criteria $criteria
      * @return string
      */
-    static function GetCustomCountQuery($criteria)
+    public static function GetCustomCountQuery($criteria)
     {
         return "";
     }
@@ -252,7 +243,7 @@ abstract class Reporter
      * @access public
      * @return array
      */
-    function GetArray()
+    public function GetArray()
     {
         $fms = $this->_phreezer->GetFieldMaps(static::class);
         $cols =  [];
@@ -271,7 +262,7 @@ abstract class Reporter
      * @access public
      * @param Array $row
      */
-    function Load(&$row)
+    public function Load(&$row)
     {
         $this->_phreezer->Observe("Loading " . static::class, OBSERVE_DEBUG);
 

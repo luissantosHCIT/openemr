@@ -21,6 +21,7 @@ use DOMDocument;
 use Laminas\Mvc\Controller\AbstractActionController;
 use OpenEMR\Common\Crypto\KeyVersion;
 use OpenEMR\Common\Crypto\PasswordBasedCrypto;
+use OpenEMR\Common\Utils\XmlUtils;
 use OpenEMR\Core\OEGlobalsBag;
 use XSLTProcessor;
 
@@ -149,7 +150,7 @@ class DocumentsController extends AbstractActionController
 
         $request = $this->getRequest();
         $documentId = $this->params()->fromRoute('id');
-        $doEncryption = ($this->params()->fromRoute('doencryption') == '1') ? true : false;
+        $doEncryption = $this->params()->fromRoute('doencryption') == '1';
         $encryptionKey = $this->params()->fromRoute('key');
         $type = ($this->params()->fromRoute('download') == '1') ? "attachment" : "inline";
 
@@ -161,7 +162,7 @@ class DocumentsController extends AbstractActionController
         $document = $this->Documents()->getDocument($documentId, $doEncryption, $encryptionKey);
         $categoryIds = $this->getDocumentsTable()->getCategoryIDs(['CCD', 'CCR', 'CCDA']);
         if (in_array($result['category_id'], $categoryIds) && $contentType == 'text/xml' && !$doEncryption) {
-            $xml = simplexml_load_string((string) $document, 'SimpleXMLElement', LIBXML_NONET);
+            $xml = XmlUtils::loadString((string) $document);
             $xsl = new DomDocument();
             $qrda = $xml->templateId[2]['root'];
             $style = match ($result['category_id']) {
